@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import L from "leaflet";
-import { MapContainer as LeafletMapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import type { Event, MapStyle } from "@/types/event";
-import { TILE_ATTRIBUTION, TILE_URLS } from "@/lib/constants";
+import { CircleMarker, MapContainer as LeafletMapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import type { Event } from "@/types/event";
+import { TILE_ATTRIBUTION, TILE_URL } from "@/lib/constants";
 import { daysUntilText, formatDateRange, getEventStatus } from "@/lib/event-status";
 import { EventPopup } from "../event/EventPopup";
 import { buildMarkerHTML, markerSizeByStatus } from "./MarkerIcon";
@@ -12,7 +12,6 @@ import { buildMarkerHTML, markerSizeByStatus } from "./MarkerIcon";
 interface MapInnerProps {
   events: Event[];
   selectedEventId: string | null;
-  mapStyle: MapStyle;
   onSelectEvent?: (id: string) => void;
   onReady?: (actions: { resetView: () => void; locateMe: () => void }) => void;
 }
@@ -42,7 +41,15 @@ function FlyToSelected({ events, selectedEventId }: { events: Event[]; selectedE
   return null;
 }
 
-function MapActionsBridge({ events, onReady }: { events: Event[]; onReady?: (actions: { resetView: () => void; locateMe: () => void }) => void }) {
+function MapActionsBridge({
+  events,
+  onReady,
+  onLocated,
+}: {
+  events: Event[];
+  onReady?: (actions: { resetView: () => void; locateMe: () => void }) => void;
+  onLocated?: (latLng: [number, number]) => void;
+}) {
   const map = useMap();
 
   useEffect(() => {
@@ -55,22 +62,43 @@ function MapActionsBridge({ events, onReady }: { events: Event[]; onReady?: (act
         map.flyToBounds(bounds.pad(0.2), { duration: 0.8 });
       },
       locateMe: () => {
-        if (!navigator.geolocation) return;
+        if (!navigator.geolocation) {
+          window.alert("このブラウザは位置情報取得に対応していません。");
+          return;
+        }
+        if (!window.isSecureContext) {
+          window.alert("位置情報は HTTPS または localhost でのみ利用できます。");
+          return;
+        }
         navigator.geolocation.getCurrentPosition(
           (position) => {
-            map.flyTo([position.coords.latitude, position.coords.longitude], 15, { duration: 1 });
+            const latLng: [number, number] = [position.coords.latitude, position.coords.longitude];
+            map.flyTo(latLng, 15, { duration: 1 });
+            onLocated?.(latLng);
           },
-          () => {},
+          (error) => {
+            if (error.code === error.PERMISSION_DENIED) {
+              window.alert("位置情報の利用が拒否されました。ブラウザ設定で許可してください。");
+              return;
+            }
+            if (error.code === error.TIMEOUT) {
+              window.alert("位置情報の取得がタイムアウトしました。");
+              return;
+            }
+            window.alert("現在地を取得できませんでした。通信環境と端末設定を確認してください。");
+          },
           { enableHighAccuracy: true },
         );
       },
     });
-  }, [events, map, onReady]);
+  }, [events, map, onLocated, onReady]);
 
   return null;
 }
 
-export function MapInner({ events, selectedEventId, mapStyle, onSelectEvent, onReady }: MapInnerProps) {
+export function MapInner({ events, selectedEventId, onSelectEvent, onReady }: MapInnerProps) {
+  const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
+
   const center = useMemo<[number, number]>(() => {
     if (events.length > 0) {
       return [events[0].latitude, events[0].longitude];
@@ -80,7 +108,7 @@ export function MapInner({ events, selectedEventId, mapStyle, onSelectEvent, onR
 
   return (
     <LeafletMapContainer center={center} zoom={14} zoomControl={false} className="w-full h-full">
-      <TileLayer url={TILE_URLS[mapStyle]} maxZoom={20} attribution={TILE_ATTRIBUTION} />
+      <TileLayer url={TILE_URL} maxZoom={20} attribution={TILE_ATTRIBUTION} />
 
       {events.map((event) => {
         const status = getEventStatus(event);
@@ -98,7 +126,14 @@ export function MapInner({ events, selectedEventId, mapStyle, onSelectEvent, onR
             zIndexOffset={status === "today" ? 1000 : status === "upcoming" ? 500 : 0}
             eventHandlers={{ click: () => onSelectEvent?.(event.id) }}
           >
-            <Popup maxWidth={300}>
+            <Popup
+              maxWidth={320}
+              minWidth={180}
+              autoPan
+              keepInView
+              autoPanPaddingTopLeft={[16, 16]}
+              autoPanPaddingBottomRight={[16, 24]}
+            >
               <EventPopup
                 id={event.id}
                 title={event.title}
@@ -113,9 +148,24 @@ export function MapInner({ events, selectedEventId, mapStyle, onSelectEvent, onR
         );
       })}
 
+      {currentLocation ? (
+        <CircleMarker
+          center={currentLocation}
+          radius={9}
+          pathOptions={{
+            color: "#1d4ed8",
+            fillColor: "#3b82f6",
+            fillOpacity: 0.9,
+            weight: 3,
+          }}
+        >
+          <Popup>現在地</Popup>
+        </CircleMarker>
+      ) : null}
+
       <FitToEvents events={events} />
       <FlyToSelected events={events} selectedEventId={selectedEventId} />
-      <MapActionsBridge events={events} onReady={onReady} />
+      <MapActionsBridge events={events} onReady={onReady} onLocated={setCurrentLocation} />
     </LeafletMapContainer>
   );
 }

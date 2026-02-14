@@ -2,11 +2,10 @@
 
 import dynamic from "next/dynamic";
 import { useCallback, useState } from "react";
-import type { Event, MapStyle } from "@/types/event";
+import type { Event } from "@/types/event";
 import { SpotBadge } from "../mobile/SpotBadge";
 import { MapControls } from "./MapControls";
 import { MapStats } from "./MapStats";
-import { MapStyleToggle } from "./MapStyleToggle";
 
 const MapInner = dynamic(() => import("./MapInner").then((mod) => mod.MapInner), {
   ssr: false,
@@ -14,8 +13,6 @@ const MapInner = dynamic(() => import("./MapInner").then((mod) => mod.MapInner),
 
 interface MapContainerProps {
   areaName?: string;
-  mapStyle: MapStyle;
-  onChangeMapStyle?: (style: MapStyle) => void;
   stats: {
     total: number;
     today: number;
@@ -29,8 +26,6 @@ interface MapContainerProps {
 
 export function MapContainer({
   areaName = "鹿児島県日置市",
-  mapStyle,
-  onChangeMapStyle,
   stats,
   mobileCount,
   events,
@@ -52,7 +47,6 @@ export function MapContainer({
         <MapInner
           events={events}
           selectedEventId={selectedEventId}
-          mapStyle={mapStyle}
           onSelectEvent={onSelectEvent}
           onReady={handleReady}
         />
@@ -63,7 +57,6 @@ export function MapContainer({
           <p className="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">表示エリア</p>
           <p className="text-sm font-bold text-slate-800 mt-0.5">{areaName}</p>
         </div>
-        <MapStyleToggle style={mapStyle} onChange={onChangeMapStyle} />
       </div>
 
       <div className="hidden lg:block absolute bottom-6 left-4 z-[1000] pointer-events-none">

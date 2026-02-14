@@ -24,10 +24,17 @@ export function EventActions({ id, canManage }: EventActionsProps) {
     try {
       const response = await fetch(`/api/events/${id}`, { method: "DELETE" });
       const payload = (await response.json().catch(() => null)) as
-        | { error?: { message?: string } }
+        | { error?: { code?: string; message?: string } }
         | null;
 
       if (!response.ok) {
+        const code = payload?.error?.code;
+        if (code === "UNAUTHORIZED") {
+          throw new Error("ログイン後に削除できます。");
+        }
+        if (code === "FORBIDDEN") {
+          throw new Error("この投稿を削除する権限がありません。");
+        }
         throw new Error(payload?.error?.message ?? "削除に失敗しました");
       }
 
@@ -59,7 +66,7 @@ export function EventActions({ id, canManage }: EventActionsProps) {
           </button>
         </div>
       ) : (
-        <p className="text-sm text-slate-500">この投稿は作成者のみ編集・削除できます。</p>
+        <p className="text-sm text-slate-500">この投稿は作成者または管理者のみ編集・削除できます。</p>
       )}
       {error ? (
         <p className="mt-3 rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2">{error}</p>

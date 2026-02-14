@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import type { EventCardData } from "@/components/event/EventCard";
 import { Header } from "@/components/layout/Header";
@@ -22,18 +23,17 @@ export default function HomePage() {
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isPcCardPopupOpen, setPcCardPopupOpen] = useState(false);
 
   const filter = useAppStore((state) => state.filter);
   const searchQuery = useAppStore((state) => state.searchQuery);
   const selectedEventId = useAppStore((state) => state.selectedEventId);
-  const mapStyle = useAppStore((state) => state.mapStyle);
   const isMenuOpen = useAppStore((state) => state.isMenuOpen);
   const isBottomSheetOpen = useAppStore((state) => state.isBottomSheetOpen);
 
   const setFilter = useAppStore((state) => state.setFilter);
   const setSearchQuery = useAppStore((state) => state.setSearchQuery);
   const selectEvent = useAppStore((state) => state.selectEvent);
-  const setMapStyle = useAppStore((state) => state.setMapStyle);
   const setMenu = useAppStore((state) => state.setMenu);
   const setBottomSheet = useAppStore((state) => state.setBottomSheet);
 
@@ -84,16 +84,27 @@ export default function HomePage() {
     [events, selectedEventId],
   );
 
-  const handleSelectEvent = (id: string) => {
+  const handleSelectEventFromMap = (id: string) => {
     selectEvent(id);
+    setPcCardPopupOpen(false);
     if (isMobile) {
       setBottomSheet(true);
     }
   };
 
+  const handleSelectEventFromSidebar = (id: string) => {
+    selectEvent(id);
+    if (isMobile) {
+      setBottomSheet(true);
+      return;
+    }
+    setPcCardPopupOpen(true);
+  };
+
   const handleSearchSelect = (item: SearchResultItem) => {
     setSearchQuery(item.title);
     selectEvent(item.id);
+    setPcCardPopupOpen(false);
     if (isMobile) {
       setBottomSheet(true);
     }
@@ -122,12 +133,10 @@ export default function HomePage() {
           searchResultsOpen={searchResults.length > 0}
           onSearchSelect={handleSearchSelect}
           onFilterChange={setFilter}
-          onSelectEvent={handleSelectEvent}
+          onSelectEvent={handleSelectEventFromSidebar}
         />
 
         <MapContainer
-          mapStyle={mapStyle}
-          onChangeMapStyle={setMapStyle}
           stats={{
             total: counts.all,
             today: counts.today,
@@ -136,9 +145,58 @@ export default function HomePage() {
           mobileCount={filteredEvents.length}
           events={filteredEvents}
           selectedEventId={selectedEventId}
-          onSelectEvent={handleSelectEvent}
+          onSelectEvent={handleSelectEventFromMap}
         />
       </div>
+
+      {!isMobile && isPcCardPopupOpen && selectedEvent ? (
+        <div className="hidden lg:block absolute right-6 bottom-6 z-[1300] w-[340px]">
+          <div className="rounded-2xl overflow-hidden border border-slate-200 bg-white shadow-2xl">
+            <div className="relative">
+              <Image
+                src={selectedEvent.event_image}
+                alt={selectedEvent.title}
+                width={1200}
+                height={768}
+                unoptimized
+                className="w-full h-40 object-cover"
+              />
+              <StatusBadge
+                status={getEventStatus(selectedEvent)}
+                className="absolute top-3 left-3 backdrop-blur-sm shadow"
+              />
+              <button
+                type="button"
+                aria-label="close card popup"
+                className="absolute top-3 right-3 h-7 w-7 rounded-full bg-white/90 text-slate-700 text-xs font-bold shadow"
+                onClick={() => setPcCardPopupOpen(false)}
+              >
+                ×
+              </button>
+            </div>
+            <div className="p-4">
+              <h3 className="text-sm font-extrabold text-slate-900 line-clamp-1">
+                {selectedEvent.title}
+              </h3>
+              <p className="mt-1 text-xs text-slate-500">
+                📅 {formatDateRange(selectedEvent.event_date, selectedEvent.expire_date)}
+              </p>
+              <p className="mt-2 text-xs text-slate-600 leading-relaxed line-clamp-3">
+                {selectedEvent.content}
+              </p>
+              <Link
+                href={`/event/${selectedEvent.id}`}
+                className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-900 border border-slate-300 transition shadow-sm"
+              >
+                詳細を見る
+                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <BottomSheet isOpen={isBottomSheetOpen} onClose={() => setBottomSheet(false)}>
         {selectedEvent ? (
@@ -180,14 +238,12 @@ export default function HomePage() {
       <MenuDrawer
         isOpen={isMenuOpen}
         currentFilter={filter}
-        mapStyle={mapStyle}
         counts={counts}
         onClose={() => setMenu(false)}
         onChangeFilter={(nextFilter) => {
           setFilter(nextFilter);
           setMenu(false);
         }}
-        onChangeStyle={setMapStyle}
       />
 
       {loading ? (

@@ -90,11 +90,12 @@ Request body:
   "longitude": 130.345,
   "event_date": "2026-03-01",
   "expire_date": "2026-03-01",
-  "event_image": "https://..."
+  "event_image": "https://... or data:image/...;base64,..."
 }
 ```
 
 - Requires logged-in session and stores `author_id = session.userId`.
+- `event_image` は `http/https` URL またはフォームアップロード由来の `data:image/...` を受け付けます。
 
 ### `GET /api/events/:id`
 
@@ -169,6 +170,11 @@ npm run prisma:migrate:supabase
 npm run supabase:rehearsal
 ```
 
+Latest rehearsal result (2026-02-14):
+
+- `Supabase CRUD rehearsal passed`
+- `createdId: cmlmgpyh60000btwtglh3aqch`
+
 ## Test strategy
 
 - `npm run test` runs an e2e-like API flow:
@@ -180,3 +186,7 @@ npm run supabase:rehearsal
 
 - See `docs.production-checklist.md`.
 - Auth/Authz draft: `docs.authz-spec.md`.
+
+## Roadmap note
+
+- Admin dashboard (`/admin`) is planned for Phase 2.

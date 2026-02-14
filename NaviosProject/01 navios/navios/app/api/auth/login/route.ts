@@ -20,7 +20,10 @@ export async function POST(request: Request) {
 
   const actor = authenticate(parsed.data.email, parsed.data.password);
   if (!actor) {
-    return NextResponse.json(fail("UNAUTHORIZED", "Invalid credentials"), { status: 401 });
+    return NextResponse.json(
+      fail("UNAUTHORIZED", "メールアドレスまたはパスワードが正しくありません"),
+      { status: 401 },
+    );
   }
 
   const token = createSessionToken(actor);

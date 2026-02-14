@@ -16,6 +16,22 @@ const querySchema = z.object({
   radius: z.coerce.number().positive().max(200).optional(),
 });
 
+const imageSchema = z
+  .string()
+  .min(1)
+  .max(7_000_000)
+  .refine((value) => {
+    if (value.startsWith("data:image/")) {
+      return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(value);
+    }
+    try {
+      const url = new URL(value);
+      return url.protocol === "http:" || url.protocol === "https:";
+    } catch {
+      return false;
+    }
+  }, "Invalid image format");
+
 const eventCreateSchema = z.object({
   title: z.string().trim().min(1).max(120),
   content: z.string().trim().min(1).max(5000),
@@ -23,7 +39,7 @@ const eventCreateSchema = z.object({
   longitude: z.number().min(-180).max(180),
   event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
   expire_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  event_image: z.string().url().max(2048),
+  event_image: imageSchema,
 });
 
 function toEvent(input: {
@@ -158,7 +174,7 @@ export async function POST(request: Request) {
 
   if (!actor) {
     return NextResponse.json(
-      fail("UNAUTHORIZED", "Sign-in is required for this action"),
+      fail("UNAUTHORIZED", "ログインが必要です"),
       { status: 401 },
     );
   }

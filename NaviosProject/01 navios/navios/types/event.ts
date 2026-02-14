@@ -13,5 +13,3 @@ export interface Event {
 export type EventStatus = "today" | "upcoming" | "ended";
 
 export type EventFilter = "all" | EventStatus;
-
-export type MapStyle = "voyager" | "light" | "dark";

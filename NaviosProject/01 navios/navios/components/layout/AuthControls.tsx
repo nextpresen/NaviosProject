@@ -45,18 +45,17 @@ export function AuthControls() {
 
   return (
     <div className="flex items-center gap-2">
-      <Link
-        href="/new"
-        className="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition shadow-md shadow-brand-600/20"
-      >
-        <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-        </svg>
-        新規投稿
-      </Link>
-
       {loading ? null : actor ? (
         <>
+          <Link
+            href="/new"
+            className="flex items-center gap-2 bg-slate-900 hover:bg-slate-800 text-white text-sm font-semibold px-4 py-2 rounded-xl transition shadow-md"
+          >
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+            </svg>
+            投稿する
+          </Link>
           <button
             type="button"
             onClick={onLogout}
