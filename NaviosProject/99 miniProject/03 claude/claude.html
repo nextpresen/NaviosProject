@@ -1,0 +1,787 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>SpotLog - Map Discovery</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="">
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Inter', 'sans-serif'] },
+          colors: {
+            brand: { 50:'#eef8ff',100:'#d8eeff',200:'#b9e0ff',300:'#89cfff',400:'#52b4ff',500:'#2a91ff',600:'#1a75f5',700:'#0f5ce1',800:'#134bb6',900:'#16428f' },
+            surface: { 50:'#f8fafc',100:'#f1f5f9',200:'#e2e8f0',300:'#cbd5e1' }
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Inter', sans-serif; background: #f0f4f8; color: #1e293b; overflow: hidden; height: 100dvh; }
+
+    /* ── Scrollbar ── */
+    .custom-scroll::-webkit-scrollbar { width: 5px; }
+    .custom-scroll::-webkit-scrollbar-track { background: transparent; }
+    .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 99px; }
+    .custom-scroll { scrollbar-width: thin; scrollbar-color: #cbd5e1 transparent; }
+
+    /* ── Map ── */
+    #map { width: 100%; height: 100%; }
+
+    /* ── Leaflet Popup (PC only — mobile uses bottom sheet) ── */
+    .leaflet-popup-content-wrapper { border-radius: 16px; box-shadow: 0 20px 40px rgba(15,23,42,.18); padding: 0; overflow: hidden; }
+    .leaflet-popup-content { margin: 0; width: 260px !important; }
+    .leaflet-popup-tip { box-shadow: 0 4px 12px rgba(15,23,42,.12); }
+
+    /* ── Custom Marker ── */
+    .marker-pin { position: relative; width: 40px; height: 52px; display: flex; align-items: flex-start; justify-content: center; filter: drop-shadow(0 4px 8px rgba(15,23,42,.3)); }
+    .marker-pin .pin-body { width: 36px; height: 36px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: linear-gradient(135deg,#2a91ff,#0f5ce1); border: 3px solid #fff; display: flex; align-items: center; justify-content: center; }
+    .marker-pin .pin-icon { transform: rotate(45deg); font-size: 16px; line-height: 1; color: #fff; }
+    .marker-pin .pin-pulse { position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 50%; background: rgba(42,145,255,.35); animation: markerPulse 2s ease-out infinite; }
+    @keyframes markerPulse { 0% { transform: translateX(-50%) scale(1); opacity:.8; } 100% { transform: translateX(-50%) scale(3); opacity:0; } }
+
+    .marker-pin.green .pin-body  { background: linear-gradient(135deg,#22c55e,#15803d); }
+    .marker-pin.green .pin-pulse { background: rgba(34,197,94,.35); }
+    .marker-pin.orange .pin-body { background: linear-gradient(135deg,#f97316,#c2410c); }
+    .marker-pin.orange .pin-pulse{ background: rgba(249,115,22,.35); }
+    .marker-pin.purple .pin-body { background: linear-gradient(135deg,#a855f7,#7c3aed); }
+    .marker-pin.purple .pin-pulse{ background: rgba(168,85,247,.35); }
+    .marker-pin.red .pin-body    { background: linear-gradient(135deg,#ef4444,#b91c1c); }
+    .marker-pin.red .pin-pulse   { background: rgba(239,68,68,.35); }
+
+    /* ── Glass ── */
+    .glass { background: rgba(255,255,255,.85); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); }
+
+    /* ── Post Card (PC sidebar) ── */
+    .post-card { transition: transform .22s ease, box-shadow .22s ease; }
+    .post-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(15,23,42,.12); }
+    .post-card.active { border-color: #2a91ff; box-shadow: 0 0 0 3px rgba(42,145,255,.15), 0 12px 28px rgba(15,23,42,.12); }
+
+    .cat-badge { font-size: 10px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; padding: 3px 8px; border-radius: 6px; }
+
+    /* ═══════════════════════════════════
+       MOBILE BOTTOM SHEET
+    ═══════════════════════════════════ */
+    .bottom-sheet-overlay {
+      position: fixed; inset: 0; z-index: 2000; background: rgba(0,0,0,.3);
+      opacity: 0; pointer-events: none; transition: opacity .3s ease;
+    }
+    .bottom-sheet-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .bottom-sheet {
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 2001;
+      background: #fff; border-radius: 20px 20px 0 0;
+      box-shadow: 0 -10px 40px rgba(15,23,42,.15);
+      transform: translateY(100%); transition: transform .35s cubic-bezier(.32,.72,0,1);
+      max-height: 70dvh; display: flex; flex-direction: column;
+    }
+    .bottom-sheet.open { transform: translateY(0); }
+
+    .bottom-sheet .handle { width: 36px; height: 4px; border-radius: 99px; background: #cbd5e1; margin: 10px auto 0; flex-shrink: 0; }
+
+    /* ═══════════════════════════════════
+       HAMBURGER MENU DRAWER
+    ═══════════════════════════════════ */
+    .menu-overlay {
+      position: fixed; inset: 0; z-index: 3000; background: rgba(0,0,0,.4);
+      opacity: 0; pointer-events: none; transition: opacity .3s ease;
+    }
+    .menu-overlay.open { opacity: 1; pointer-events: auto; }
+
+    .menu-drawer {
+      position: fixed; top: 0; right: 0; bottom: 0; z-index: 3001;
+      width: 300px; max-width: 85vw; background: #fff;
+      transform: translateX(100%); transition: transform .35s cubic-bezier(.32,.72,0,1);
+      display: flex; flex-direction: column;
+      box-shadow: -8px 0 30px rgba(15,23,42,.12);
+    }
+    .menu-drawer.open { transform: translateX(0); }
+
+    /* ═══════════════════════════════════
+       SEARCH SUGGESTIONS
+    ═══════════════════════════════════ */
+    .search-results {
+      position: absolute; top: 100%; left: 0; right: 0; z-index: 100;
+      background: #fff; border-radius: 0 0 16px 16px;
+      box-shadow: 0 12px 32px rgba(15,23,42,.15);
+      max-height: 260px; overflow-y: auto;
+      display: none;
+    }
+    .search-results.show { display: block; }
+    .search-result-item { padding: 10px 14px; cursor: pointer; border-bottom: 1px solid #f1f5f9; transition: background .15s; }
+    .search-result-item:hover { background: #f8fafc; }
+    .search-result-item:last-child { border-bottom: none; border-radius: 0 0 16px 16px; }
+
+    /* ═══════════════════════════════════
+       RESPONSIVE
+    ═══════════════════════════════════ */
+    /* ── MOBILE (default) ── */
+    .pc-sidebar { display: none; }
+    .mobile-header { display: flex; }
+    .pc-header { display: none; }
+    .pc-map-overlays { display: none; }
+
+    /* ── PC ── */
+    @media (min-width: 1025px) {
+      .pc-sidebar { display: flex; }
+      .mobile-header { display: none !important; }
+      .pc-header { display: flex; }
+      .pc-map-overlays { display: flex; }
+      .mobile-fab { display: none !important; }
+    }
+  </style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════════════════
+     APP SHELL
+═══════════════════════════════════════════════════ -->
+<div class="h-[100dvh] flex flex-col overflow-hidden">
+
+  <!-- ══════════ PC HEADER (lg+) ══════════ -->
+  <header class="pc-header flex-shrink-0 bg-white border-b border-surface-200 px-6 py-3 items-center justify-between">
+    <div class="flex items-center gap-3">
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/25">
+        <svg class="w-5 h-5 text-white" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </div>
+      <div>
+        <h1 class="text-lg font-extrabold tracking-tight leading-none">SpotLog</h1>
+        <p class="text-[11px] text-slate-400 font-medium tracking-wide">MAP DISCOVERY BOARD</p>
+      </div>
+    </div>
+    <div class="flex items-center gap-2">
+      <button class="flex items-center gap-2 bg-brand-600 hover:bg-brand-700 text-white text-sm font-semibold px-4 py-2 rounded-xl transition shadow-md shadow-brand-600/20">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+        新規投稿
+      </button>
+      <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-xs font-bold cursor-pointer">N</div>
+    </div>
+  </header>
+
+  <!-- ══════════ MOBILE HEADER ══════════ -->
+  <header class="mobile-header flex-shrink-0 items-center gap-2 px-3 py-2 bg-white/90 backdrop-blur-xl border-b border-surface-200 z-[1100]" style="display:flex;">
+    <!-- Logo -->
+    <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center flex-shrink-0 shadow shadow-brand-500/20">
+      <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+    </div>
+    <!-- Search -->
+    <div class="flex-1 relative" id="mobileSearchWrap">
+      <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      <input type="text" id="mobileSearchInput" placeholder="場所・スポットを検索..." class="w-full pl-9 pr-3 py-2 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition">
+      <div id="mobileSearchResults" class="search-results custom-scroll"></div>
+    </div>
+    <!-- Hamburger -->
+    <button id="btnHamburger" class="w-8 h-8 rounded-lg flex items-center justify-center border border-surface-200 hover:bg-surface-100 transition flex-shrink-0">
+      <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+    </button>
+  </header>
+
+  <!-- ══════════ MAIN BODY ══════════ -->
+  <div class="flex-1 flex overflow-hidden">
+
+    <!-- ════ PC SIDEBAR ════ -->
+    <aside class="pc-sidebar flex-col bg-white border-r border-surface-200 overflow-hidden" style="width:380px;flex-shrink:0;">
+      <!-- Search -->
+      <div class="flex-shrink-0 p-4 border-b border-surface-100">
+        <div class="relative" id="pcSearchWrap">
+          <svg class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          <input type="text" id="pcSearchInput" placeholder="場所・スポットを検索..." class="w-full pl-10 pr-4 py-2.5 text-sm bg-surface-50 border border-surface-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-brand-500/30 focus:border-brand-500 transition">
+          <div id="pcSearchResults" class="search-results custom-scroll"></div>
+        </div>
+        <div class="flex gap-1.5 mt-3 flex-wrap">
+          <button class="tab-btn active text-xs font-semibold px-3 py-1.5 rounded-lg" data-cat="all">すべて</button>
+          <button class="tab-btn text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-500 hover:bg-surface-100" data-cat="scenery">景色</button>
+          <button class="tab-btn text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-500 hover:bg-surface-100" data-cat="food">グルメ</button>
+          <button class="tab-btn text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-500 hover:bg-surface-100" data-cat="walk">散歩</button>
+          <button class="tab-btn text-xs font-semibold px-3 py-1.5 rounded-lg text-slate-500 hover:bg-surface-100" data-cat="event">イベント</button>
+        </div>
+      </div>
+      <!-- Count -->
+      <div class="flex-shrink-0 px-4 py-2.5 flex items-center justify-between border-b border-surface-100">
+        <p class="text-xs text-slate-400 font-medium"><span id="postCount" class="text-slate-700 font-bold">0</span> スポット</p>
+      </div>
+      <!-- List -->
+      <div id="postList" class="flex-1 overflow-y-auto custom-scroll p-3 space-y-2.5"></div>
+    </aside>
+
+    <!-- ════ MAP ════ -->
+    <section class="flex-1 relative overflow-hidden">
+      <div id="map"></div>
+
+      <!-- PC Map Overlays -->
+      <div class="pc-map-overlays absolute top-4 left-4 right-4 z-[1000] items-start justify-between pointer-events-none">
+        <div class="pointer-events-auto glass rounded-2xl px-4 py-3 border border-white/60 shadow-lg">
+          <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">表示エリア</p>
+          <p id="areaName" class="text-sm font-bold text-slate-800 mt-0.5">鹿児島県日置市</p>
+        </div>
+        <div class="pointer-events-auto glass rounded-2xl p-1.5 border border-white/60 shadow-lg flex gap-1">
+          <button class="style-btn text-xs font-semibold px-3 py-1.5 rounded-xl bg-slate-800 text-white transition" data-style="voyager">Standard</button>
+          <button class="style-btn text-xs font-semibold px-3 py-1.5 rounded-xl text-slate-500 hover:bg-white/60 transition" data-style="light">Light</button>
+          <button class="style-btn text-xs font-semibold px-3 py-1.5 rounded-xl text-slate-500 hover:bg-white/60 transition" data-style="dark">Dark</button>
+        </div>
+      </div>
+
+      <!-- PC Stats -->
+      <div class="pc-map-overlays absolute bottom-6 left-4 z-[1000] pointer-events-none">
+        <div class="pointer-events-auto glass rounded-2xl px-4 py-3 border border-white/60 shadow-lg flex gap-5">
+          <div>
+            <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Total Spots</p>
+            <p id="totalSpots" class="text-xl font-extrabold text-slate-800 leading-tight">0</p>
+          </div>
+          <div class="w-px bg-slate-200"></div>
+          <div>
+            <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">Categories</p>
+            <p class="text-xl font-extrabold text-slate-800 leading-tight">4</p>
+          </div>
+          <div class="w-px bg-slate-200"></div>
+          <div>
+            <p class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider">This Month</p>
+            <p id="monthCount" class="text-xl font-extrabold text-brand-600 leading-tight">0</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Map Action Buttons (共通) -->
+      <div class="absolute bottom-6 right-4 z-[1000] flex flex-col gap-2">
+        <button id="btnMyLocation" class="w-11 h-11 rounded-2xl glass border border-white/60 shadow-lg flex items-center justify-center hover:bg-white transition" title="現在地">
+          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 2v2m0 16v2M2 12h2m16 0h2m-3.636-6.364l-1.414 1.414M7.05 16.95l-1.414 1.414M16.95 16.95l1.414 1.414M7.05 7.05L5.636 5.636M12 8a4 4 0 100 8 4 4 0 000-8z"/></svg>
+        </button>
+        <button id="btnResetView" class="w-11 h-11 rounded-2xl glass border border-white/60 shadow-lg flex items-center justify-center hover:bg-white transition" title="全体表示">
+          <svg class="w-5 h-5 text-slate-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3.055 11H5a2 2 0 012 2v1a2 2 0 002 2 2 2 0 012 2v2.945M8 3.935V5.5A2.5 2.5 0 0010.5 8h.5a2 2 0 012 2 2 2 0 104 0 2 2 0 012-2h1.064M15 20.488V18a2 2 0 012-2h3.064M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </button>
+      </div>
+
+      <!-- Mobile: Spot count badge -->
+      <div class="mobile-fab absolute top-3 right-3 z-[1000]">
+        <div class="glass rounded-full px-3 py-1.5 border border-white/60 shadow-lg flex items-center gap-1.5">
+          <span class="w-2 h-2 rounded-full bg-brand-500 animate-pulse"></span>
+          <span id="mobileSpotCount" class="text-xs font-bold text-slate-700">0</span>
+          <span class="text-[10px] text-slate-400">spots</span>
+        </div>
+      </div>
+    </section>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     MOBILE BOTTOM SHEET
+═══════════════════════════════════════════════════ -->
+<div id="bottomSheetOverlay" class="bottom-sheet-overlay"></div>
+<div id="bottomSheet" class="bottom-sheet">
+  <div class="handle"></div>
+  <div id="bottomSheetContent" class="flex-1 overflow-y-auto custom-scroll p-4"></div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════
+     HAMBURGER DRAWER
+═══════════════════════════════════════════════════ -->
+<div id="menuOverlay" class="menu-overlay"></div>
+<div id="menuDrawer" class="menu-drawer">
+  <div class="p-5 border-b border-surface-200 flex items-center justify-between">
+    <div class="flex items-center gap-2.5">
+      <div class="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
+        <svg class="w-4 h-4 text-white" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      </div>
+      <span class="font-extrabold text-base">SpotLog</span>
+    </div>
+    <button id="btnCloseMenu" class="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-surface-100 transition">
+      <svg class="w-5 h-5 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" d="M6 18L18 6M6 6l12 12"/></svg>
+    </button>
+  </div>
+
+  <!-- Categories -->
+  <div class="p-4">
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">カテゴリー</p>
+    <div class="space-y-1" id="menuCategoryList">
+      <button class="menu-cat-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition hover:bg-surface-50 active" data-cat="all">
+        <span class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm">🗺</span>
+        <span class="text-sm font-semibold">すべて</span>
+        <span class="ml-auto text-xs text-slate-400 font-medium" id="menuCountAll">0</span>
+      </button>
+      <button class="menu-cat-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition hover:bg-surface-50" data-cat="scenery">
+        <span class="w-8 h-8 rounded-lg bg-blue-50 flex items-center justify-center text-sm">🏔</span>
+        <span class="text-sm font-semibold">景色</span>
+        <span class="ml-auto text-xs text-slate-400 font-medium" id="menuCountScenery">0</span>
+      </button>
+      <button class="menu-cat-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition hover:bg-surface-50" data-cat="food">
+        <span class="w-8 h-8 rounded-lg bg-orange-50 flex items-center justify-center text-sm">🍽</span>
+        <span class="text-sm font-semibold">グルメ</span>
+        <span class="ml-auto text-xs text-slate-400 font-medium" id="menuCountFood">0</span>
+      </button>
+      <button class="menu-cat-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition hover:bg-surface-50" data-cat="walk">
+        <span class="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center text-sm">🚶</span>
+        <span class="text-sm font-semibold">散歩</span>
+        <span class="ml-auto text-xs text-slate-400 font-medium" id="menuCountWalk">0</span>
+      </button>
+      <button class="menu-cat-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition hover:bg-surface-50" data-cat="event">
+        <span class="w-8 h-8 rounded-lg bg-purple-50 flex items-center justify-center text-sm">🎪</span>
+        <span class="text-sm font-semibold">イベント</span>
+        <span class="ml-auto text-xs text-slate-400 font-medium" id="menuCountEvent">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="border-t border-surface-100 mx-4"></div>
+
+  <!-- Map Style -->
+  <div class="p-4">
+    <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">マップスタイル</p>
+    <div class="grid grid-cols-3 gap-2">
+      <button class="menu-style-btn flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 border-brand-500 bg-brand-50 transition" data-style="voyager">
+        <span class="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-lg">🗺</span>
+        <span class="text-[11px] font-semibold">Standard</span>
+      </button>
+      <button class="menu-style-btn flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 border-transparent hover:border-surface-200 transition" data-style="light">
+        <span class="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center text-lg">☀️</span>
+        <span class="text-[11px] font-semibold text-slate-500">Light</span>
+      </button>
+      <button class="menu-style-btn flex flex-col items-center gap-1.5 p-2.5 rounded-xl border-2 border-transparent hover:border-surface-200 transition" data-style="dark">
+        <span class="w-8 h-8 rounded-lg bg-slate-800 flex items-center justify-center text-lg">🌙</span>
+        <span class="text-[11px] font-semibold text-slate-500">Dark</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="border-t border-surface-100 mx-4"></div>
+
+  <!-- Actions -->
+  <div class="p-4">
+    <button class="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-surface-50 transition">
+      <span class="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+        <svg class="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4v16m8-8H4"/></svg>
+      </span>
+      <span class="text-sm font-semibold">新規投稿</span>
+    </button>
+  </div>
+</div>
+
+<!-- ═══════════ SCRIPTS ═══════════ -->
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+// ══════════════════════════════
+//  DATA
+// ══════════════════════════════
+const posts = [
+  { id:'spot-001', title:'吉利の丘から見る夕焼け', address:'鹿児島県日置市日吉町吉利4364', description:'丘の上から見渡す夕焼けが絶景。特に秋の時期が見頃。', lat:31.573710, lng:130.345154, date:'2026-02-14', category:'scenery', imageUrl:'https://placehold.co/400x240/3b82f6/ffffff?text=Sunset+Hill', rating:4.8, author:'Navios' },
+  { id:'spot-002', title:'隠れ家カフェ「木漏れ日」', address:'鹿児島県日置市日吉町付近', description:'地元の食材を使ったランチが人気。テラス席からの眺めも良い。', lat:31.575100, lng:130.348000, date:'2026-02-12', category:'food', imageUrl:'https://placehold.co/400x240/f97316/ffffff?text=Hidden+Cafe', rating:4.5, author:'Navios' },
+  { id:'spot-003', title:'日吉の古道ウォーキング', address:'鹿児島県日置市日吉町吉利エリア', description:'歴史ある古道を歩くコース。石畳が残る風情あるルート。', lat:31.571800, lng:130.343000, date:'2026-02-10', category:'walk', imageUrl:'https://placehold.co/400x240/22c55e/ffffff?text=Old+Trail', rating:4.2, author:'Navios' },
+  { id:'spot-004', title:'日置市 春の花まつり', address:'鹿児島県日置市日吉町公園', description:'毎年3月に開催。地元の屋台や音楽ライブも楽しめる。', lat:31.574500, lng:130.341800, date:'2026-02-08', category:'event', imageUrl:'https://placehold.co/400x240/a855f7/ffffff?text=Flower+Festival', rating:4.6, author:'Navios' },
+  { id:'spot-005', title:'吉利川沿いの桜並木', address:'鹿児島県日置市日吉町吉利川沿い', description:'春には桜のトンネルが形成される人気スポット。写真映え抜群。', lat:31.572200, lng:130.346500, date:'2026-02-05', category:'scenery', imageUrl:'https://placehold.co/400x240/ec4899/ffffff?text=Cherry+Blossom', rating:4.9, author:'Navios' },
+  { id:'spot-006', title:'漁港の朝市グルメ', address:'鹿児島県日置市日吉町漁港', description:'朝獲れの海鮮が並ぶ朝市。海鮮丼は絶品。', lat:31.576000, lng:130.350200, date:'2026-01-28', category:'food', imageUrl:'https://placehold.co/400x240/ef4444/ffffff?text=Fish+Market', rating:4.7, author:'Navios' }
+];
+
+const categoryConfig = {
+  scenery: { label:'景色', bgClass:'bg-blue-50 text-blue-700', markerClass:'' },
+  food:    { label:'グルメ', bgClass:'bg-orange-50 text-orange-700', markerClass:'orange' },
+  walk:    { label:'散歩', bgClass:'bg-emerald-50 text-emerald-700', markerClass:'green' },
+  event:   { label:'イベント', bgClass:'bg-purple-50 text-purple-700', markerClass:'purple' },
+};
+
+const starsHTML = (rating) => {
+  const full = Math.floor(rating);
+  const half = rating % 1 >= 0.5 ? 1 : 0;
+  const empty = 5 - full - half;
+  let h = '';
+  const star = '<svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>';
+  const starHalf = '<svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20" opacity="0.5"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>';
+  const starEmpty = '<svg class="w-3.5 h-3.5 text-slate-200" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>';
+  for (let i = 0; i < full; i++)  h += star;
+  for (let i = 0; i < half; i++)  h += starHalf;
+  for (let i = 0; i < empty; i++) h += starEmpty;
+  return h;
+};
+
+const isMobile = () => window.matchMedia('(max-width: 1024px)').matches;
+
+// ══════════════════════════════
+//  MAP
+// ══════════════════════════════
+const map = L.map('map', { zoomControl: false, attributionControl: true }).setView([31.573710, 130.345154], 14);
+L.control.zoom({ position: 'bottomright' }).addTo(map);
+
+const tileLayers = {
+  voyager: L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', { maxZoom:20, attribution:'&copy; OpenStreetMap &copy; CARTO' }),
+  light:   L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', { maxZoom:20, attribution:'&copy; OpenStreetMap &copy; CARTO' }),
+  dark:    L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png', { maxZoom:20, attribution:'&copy; OpenStreetMap &copy; CARTO' })
+};
+let currentTileLayer = tileLayers.voyager;
+currentTileLayer.addTo(map);
+
+// ── Markers ──
+const createMarkerIcon = (category) => {
+  const colorClass = categoryConfig[category]?.markerClass || '';
+  const emoji = { scenery:'🏔', food:'🍽', walk:'🚶', event:'🎪' }[category] || '📍';
+  return L.divIcon({
+    html: `<div class="marker-pin ${colorClass}"><div class="pin-body"><span class="pin-icon">${emoji}</span></div><span class="pin-pulse"></span></div>`,
+    className: '', iconSize: [40,52], iconAnchor: [20,52], popupAnchor: [0,-50]
+  });
+};
+
+const markerMap = {};
+let activeMarkers = [];
+
+const createPopupHTML = (post) => {
+  const cat = categoryConfig[post.category];
+  return `<div style="width:260px">
+    <img src="${post.imageUrl}" alt="${post.title}" style="width:100%;height:140px;object-fit:cover;">
+    <div style="padding:14px 16px 16px;">
+      <div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">
+        <span class="cat-badge ${cat.bgClass}">${cat.label}</span>
+        <span style="font-size:12px;color:#94a3b8;">${post.date}</span>
+      </div>
+      <p style="margin:0 0 4px;font-size:15px;font-weight:700;color:#1e293b;">${post.title}</p>
+      <p style="margin:0 0 8px;font-size:12px;color:#64748b;line-height:1.5;">${post.description}</p>
+      <div style="display:flex;align-items:center;gap:4px;margin-bottom:10px;">
+        ${starsHTML(post.rating)}
+        <span style="font-size:12px;font-weight:700;color:#1e293b;margin-left:4px;">${post.rating}</span>
+      </div>
+      <a href="detail.html?id=${post.id}" style="display:inline-flex;align-items:center;gap:6px;text-decoration:none;background:#1e293b;color:#fff;font-size:12px;font-weight:700;padding:8px 14px;border-radius:10px;">
+        詳細を見る
+        <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </a>
+    </div>
+  </div>`;
+};
+
+posts.forEach((post) => {
+  const marker = L.marker([post.lat, post.lng], { icon: createMarkerIcon(post.category) }).addTo(map);
+  // PC: normal popup / Mobile: bottom sheet
+  marker.on('click', () => onSpotSelect(post));
+  markerMap[post.id] = marker;
+});
+
+// ══════════════════════════════
+//  SPOT SELECT (PC vs Mobile)
+// ══════════════════════════════
+function onSpotSelect(post) {
+  if (isMobile()) {
+    openBottomSheet(post);
+    map.flyTo([post.lat, post.lng], 16, { duration: 0.6 });
+  } else {
+    // PC: open Leaflet popup
+    const marker = markerMap[post.id];
+    marker.unbindPopup();
+    marker.bindPopup(createPopupHTML(post), { maxWidth: 280, closeButton: true }).openPopup();
+    map.flyTo([post.lat, post.lng], 17, { duration: 0.8 });
+    // Sync sidebar
+    const card = document.querySelector(`#postList [data-id="${post.id}"]`);
+    if (card) {
+      document.querySelectorAll('#postList .post-card').forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    }
+  }
+}
+
+// ══════════════════════════════
+//  MOBILE BOTTOM SHEET
+// ══════════════════════════════
+const bottomSheet = document.getElementById('bottomSheet');
+const bottomSheetOverlay = document.getElementById('bottomSheetOverlay');
+const bottomSheetContent = document.getElementById('bottomSheetContent');
+
+function openBottomSheet(post) {
+  const cat = categoryConfig[post.category];
+  bottomSheetContent.innerHTML = `
+    <div class="relative -mx-4 -mt-4 mb-4">
+      <img src="${post.imageUrl}" alt="${post.title}" class="w-full h-44 object-cover rounded-t-2xl">
+      <span class="absolute top-3 left-3 cat-badge ${cat.bgClass} backdrop-blur-sm shadow">${cat.label}</span>
+      <div class="absolute top-3 right-3 glass rounded-lg px-2.5 py-1 flex items-center gap-1 shadow">
+        <svg class="w-3.5 h-3.5 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+        <span class="text-sm font-bold text-slate-700">${post.rating}</span>
+      </div>
+    </div>
+    <h2 class="text-lg font-extrabold text-slate-900 mb-1">${post.title}</h2>
+    <div class="flex items-center gap-2 mb-3">
+      <span class="text-xs text-slate-400">${post.date}</span>
+      <span class="text-xs text-slate-300">|</span>
+      <span class="text-xs text-slate-400">${post.author}</span>
+    </div>
+    <p class="text-sm text-slate-600 leading-relaxed mb-4">${post.description}</p>
+    <div class="flex items-center gap-1.5 text-slate-400 mb-5">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+      <span class="text-xs">${post.address}</span>
+    </div>
+    <div class="flex gap-2">
+      <a href="detail.html?id=${post.id}" class="flex-1 flex items-center justify-center gap-2 bg-slate-900 text-white text-sm font-bold py-3 rounded-xl no-underline">
+        詳細を見る
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5l7 7-7 7"/></svg>
+      </a>
+      <button onclick="closeBottomSheet()" class="px-4 py-3 rounded-xl border border-surface-200 text-sm font-semibold text-slate-500 hover:bg-surface-50 transition">閉じる</button>
+    </div>
+  `;
+  bottomSheet.classList.add('open');
+  bottomSheetOverlay.classList.add('open');
+}
+
+function closeBottomSheet() {
+  bottomSheet.classList.remove('open');
+  bottomSheetOverlay.classList.remove('open');
+}
+bottomSheetOverlay.addEventListener('click', closeBottomSheet);
+
+// Swipe down to close
+let sheetStartY = 0;
+bottomSheet.addEventListener('touchstart', (e) => { sheetStartY = e.touches[0].clientY; }, { passive: true });
+bottomSheet.addEventListener('touchmove', (e) => {
+  const dy = e.touches[0].clientY - sheetStartY;
+  if (dy > 80) closeBottomSheet();
+}, { passive: true });
+
+// ══════════════════════════════
+//  HAMBURGER MENU
+// ══════════════════════════════
+const menuOverlay = document.getElementById('menuOverlay');
+const menuDrawer = document.getElementById('menuDrawer');
+let currentCategory = 'all';
+
+function openMenu() { menuDrawer.classList.add('open'); menuOverlay.classList.add('open'); }
+function closeMenu() { menuDrawer.classList.remove('open'); menuOverlay.classList.remove('open'); }
+
+document.getElementById('btnHamburger').addEventListener('click', openMenu);
+document.getElementById('btnCloseMenu').addEventListener('click', closeMenu);
+menuOverlay.addEventListener('click', closeMenu);
+
+// Menu category counts
+function updateMenuCounts() {
+  document.getElementById('menuCountAll').textContent = posts.length;
+  document.getElementById('menuCountScenery').textContent = posts.filter(p => p.category === 'scenery').length;
+  document.getElementById('menuCountFood').textContent = posts.filter(p => p.category === 'food').length;
+  document.getElementById('menuCountWalk').textContent = posts.filter(p => p.category === 'walk').length;
+  document.getElementById('menuCountEvent').textContent = posts.filter(p => p.category === 'event').length;
+}
+updateMenuCounts();
+
+// Menu category selection
+document.querySelectorAll('.menu-cat-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    currentCategory = btn.dataset.cat;
+    document.querySelectorAll('.menu-cat-btn').forEach(b => b.classList.remove('active', 'bg-brand-50'));
+    btn.classList.add('active', 'bg-brand-50');
+    // Also sync PC tabs
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.classList.add('text-slate-500'); });
+    const pcTab = document.querySelector(`.tab-btn[data-cat="${currentCategory}"]`);
+    if (pcTab) { pcTab.classList.add('active'); pcTab.classList.remove('text-slate-500'); }
+    applyFilter();
+    closeMenu();
+  });
+});
+
+// Menu style buttons
+document.querySelectorAll('.menu-style-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    setMapStyle(btn.dataset.style);
+    document.querySelectorAll('.menu-style-btn').forEach(b => {
+      b.classList.remove('border-brand-500', 'bg-brand-50');
+      b.classList.add('border-transparent');
+      b.querySelector('span:last-child').classList.add('text-slate-500');
+      b.querySelector('span:last-child').classList.remove('text-brand-700');
+    });
+    btn.classList.add('border-brand-500', 'bg-brand-50');
+    btn.classList.remove('border-transparent');
+    btn.querySelector('span:last-child').classList.remove('text-slate-500');
+    btn.querySelector('span:last-child').classList.add('text-brand-700');
+  });
+});
+
+// ══════════════════════════════
+//  MAP STYLE
+// ══════════════════════════════
+function setMapStyle(style) {
+  map.removeLayer(currentTileLayer);
+  currentTileLayer = tileLayers[style];
+  currentTileLayer.addTo(map);
+  // Sync PC buttons
+  document.querySelectorAll('.style-btn').forEach(b => {
+    b.classList.remove('bg-slate-800', 'text-white');
+    b.classList.add('text-slate-500');
+  });
+  const pcBtn = document.querySelector(`.style-btn[data-style="${style}"]`);
+  if (pcBtn) { pcBtn.classList.add('bg-slate-800', 'text-white'); pcBtn.classList.remove('text-slate-500'); }
+}
+
+document.querySelectorAll('.style-btn').forEach(btn => {
+  btn.addEventListener('click', () => setMapStyle(btn.dataset.style));
+});
+
+// ══════════════════════════════
+//  FILTER & RENDER
+// ══════════════════════════════
+function applyFilter() {
+  const query = (isMobile()
+    ? document.getElementById('mobileSearchInput').value
+    : document.getElementById('pcSearchInput').value
+  ).toLowerCase();
+
+  const filtered = posts.filter(p => {
+    const matchCat = currentCategory === 'all' || p.category === currentCategory;
+    const matchQ = !query || p.title.includes(query) || p.address.includes(query) || p.description.includes(query);
+    return matchCat && matchQ;
+  });
+
+  // Update markers visibility
+  posts.forEach(p => {
+    const marker = markerMap[p.id];
+    const show = filtered.includes(p);
+    if (show && !map.hasLayer(marker)) marker.addTo(map);
+    if (!show && map.hasLayer(marker)) map.removeLayer(marker);
+  });
+
+  // Update counts
+  document.getElementById('mobileSpotCount').textContent = filtered.length;
+  const postCountEl = document.getElementById('postCount');
+  if (postCountEl) postCountEl.textContent = filtered.length;
+  const totalEl = document.getElementById('totalSpots');
+  if (totalEl) totalEl.textContent = posts.length;
+  const monthEl = document.getElementById('monthCount');
+  if (monthEl) monthEl.textContent = posts.filter(p => p.date.startsWith('2026-02')).length;
+
+  // PC sidebar list
+  renderSidebar(filtered);
+}
+
+function renderSidebar(filteredPosts) {
+  const el = document.getElementById('postList');
+  if (!el) return;
+  el.innerHTML = filteredPosts.map(post => {
+    const cat = categoryConfig[post.category];
+    return `
+      <article class="post-card bg-white rounded-2xl border border-surface-200 overflow-hidden cursor-pointer" data-id="${post.id}">
+        <div class="relative">
+          <img src="${post.imageUrl}" alt="${post.title}" class="w-full h-32 object-cover">
+          <span class="absolute top-2 left-2 cat-badge ${cat.bgClass} backdrop-blur-sm">${cat.label}</span>
+          <div class="absolute top-2 right-2 glass rounded-lg px-2 py-0.5 flex items-center gap-1">
+            <svg class="w-3 h-3 text-amber-400" fill="currentColor" viewBox="0 0 20 20"><path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/></svg>
+            <span class="text-[11px] font-bold text-slate-700">${post.rating}</span>
+          </div>
+        </div>
+        <div class="p-3.5">
+          <div class="flex items-center gap-2 mb-1.5">
+            <p class="text-[11px] text-slate-400 font-medium">${post.date}</p>
+            <span class="text-[10px] text-slate-300">|</span>
+            <p class="text-[11px] text-slate-400 font-medium">${post.author}</p>
+          </div>
+          <h3 class="text-sm font-bold text-slate-800 mb-1 leading-snug">${post.title}</h3>
+          <p class="text-xs text-slate-500 leading-relaxed mb-2.5" style="display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;">${post.description}</p>
+          <div class="flex items-center gap-1.5 text-slate-400">
+            <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+            <p class="text-[11px] truncate">${post.address}</p>
+          </div>
+        </div>
+      </article>`;
+  }).join('');
+
+  // Click handlers
+  el.querySelectorAll('.post-card').forEach(card => {
+    card.addEventListener('click', () => {
+      const post = posts.find(p => p.id === card.dataset.id);
+      if (post) onSpotSelect(post);
+    });
+  });
+}
+
+// PC tabs
+document.querySelectorAll('.tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.tab-btn').forEach(b => { b.classList.remove('active'); b.classList.add('text-slate-500'); });
+    btn.classList.add('active'); btn.classList.remove('text-slate-500');
+    currentCategory = btn.dataset.cat;
+    // Sync menu
+    document.querySelectorAll('.menu-cat-btn').forEach(b => b.classList.remove('active', 'bg-brand-50'));
+    const menuBtn = document.querySelector(`.menu-cat-btn[data-cat="${currentCategory}"]`);
+    if (menuBtn) menuBtn.classList.add('active', 'bg-brand-50');
+    applyFilter();
+  });
+});
+
+// Search input (both mobile + PC)
+document.getElementById('mobileSearchInput').addEventListener('input', () => { applyFilter(); geocodeSearch('mobile'); });
+document.getElementById('pcSearchInput').addEventListener('input', () => { applyFilter(); geocodeSearch('pc'); });
+
+// Initial render
+applyFilter();
+
+// ══════════════════════════════
+//  GEOCODING (Nominatim)
+// ══════════════════════════════
+let geocodeTimer = null;
+
+function geocodeSearch(mode) {
+  const input = mode === 'mobile'
+    ? document.getElementById('mobileSearchInput')
+    : document.getElementById('pcSearchInput');
+  const resultsEl = mode === 'mobile'
+    ? document.getElementById('mobileSearchResults')
+    : document.getElementById('pcSearchResults');
+
+  const query = input.value.trim();
+  if (query.length < 2) { resultsEl.classList.remove('show'); return; }
+
+  clearTimeout(geocodeTimer);
+  geocodeTimer = setTimeout(async () => {
+    try {
+      const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&countrycodes=jp&limit=5&accept-language=ja`;
+      const res = await fetch(url, { headers: { 'Accept': 'application/json' } });
+      const data = await res.json();
+
+      if (data.length === 0) { resultsEl.classList.remove('show'); return; }
+
+      resultsEl.innerHTML = data.map(item => `
+        <div class="search-result-item" data-lat="${item.lat}" data-lon="${item.lon}">
+          <p class="text-sm font-semibold text-slate-800 mb-0.5">${item.display_name.split(',')[0]}</p>
+          <p class="text-xs text-slate-400 truncate">${item.display_name}</p>
+        </div>
+      `).join('');
+
+      resultsEl.querySelectorAll('.search-result-item').forEach(item => {
+        item.addEventListener('click', () => {
+          const lat = parseFloat(item.dataset.lat);
+          const lon = parseFloat(item.dataset.lon);
+          map.flyTo([lat, lon], 14, { duration: 1 });
+          resultsEl.classList.remove('show');
+          input.value = item.querySelector('p').textContent;
+          // 場所移動のみ（投稿フィルターはリセット）
+          input.value = '';
+          applyFilter();
+        });
+      });
+
+      resultsEl.classList.add('show');
+    } catch (e) {
+      resultsEl.classList.remove('show');
+    }
+  }, 400);
+}
+
+// Close search results on outside click
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('#mobileSearchWrap')) document.getElementById('mobileSearchResults').classList.remove('show');
+  if (!e.target.closest('#pcSearchWrap')) document.getElementById('pcSearchResults').classList.remove('show');
+});
+
+// ══════════════════════════════
+//  MAP BUTTONS
+// ══════════════════════════════
+document.getElementById('btnResetView').addEventListener('click', () => {
+  const bounds = L.latLngBounds(posts.map(p => [p.lat, p.lng]));
+  map.flyToBounds(bounds.pad(0.2), { duration: 0.8 });
+});
+
+document.getElementById('btnMyLocation').addEventListener('click', () => {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.getCurrentPosition(
+    (pos) => map.flyTo([pos.coords.latitude, pos.coords.longitude], 15, { duration: 1 }),
+    () => {},
+    { enableHighAccuracy: true }
+  );
+});
+</script>
+</body>
+</html>
