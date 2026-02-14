@@ -2,7 +2,8 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { getOrCreateActorId } from "@/lib/client-actor";
 
 type EventActionsProps = {
   id: string;
@@ -12,6 +13,11 @@ export function EventActions({ id }: EventActionsProps) {
   const router = useRouter();
   const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [actorId, setActorId] = useState<string | null>(null);
+
+  useEffect(() => {
+    setActorId(getOrCreateActorId());
+  }, []);
 
   const onDelete = async () => {
     const ok = window.confirm("この投稿を削除しますか？");
@@ -21,7 +27,10 @@ export function EventActions({ id }: EventActionsProps) {
     setError(null);
 
     try {
-      const response = await fetch(`/api/events/${id}`, { method: "DELETE" });
+      const response = await fetch(`/api/events/${id}`, {
+        method: "DELETE",
+        headers: actorId ? { "x-user-id": actorId } : undefined,
+      });
       const payload = (await response.json().catch(() => null)) as
         | { error?: { message?: string } }
         | null;

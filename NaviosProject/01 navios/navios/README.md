@@ -56,11 +56,13 @@ npm run dev
 npm run lint
 npm run build
 npm run test
+npm run test:e2e
 npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:seed
 npm run prisma:generate:supabase
 npm run prisma:migrate:supabase
+npm run supabase:rehearsal
 ```
 
 ## API summary
@@ -89,6 +91,8 @@ Request body:
 }
 ```
 
+- If `x-user-id` is provided, event ownership (`author_id`) is stored.
+
 ### `GET /api/events/:id`
 
 - Returns a single event
@@ -96,10 +100,12 @@ Request body:
 ### `PUT /api/events/:id`
 
 - Updates an event (same payload schema as `POST /api/events`)
+- Requires owner/admin actor (`x-user-id`, optional `x-user-role=admin`)
 
 ### `DELETE /api/events/:id`
 
 - Deletes an event by id
+- Requires owner/admin actor (`x-user-id`, optional `x-user-role=admin`)
 
 ### `GET /api/geocode?q=鹿児島市`
 
@@ -144,3 +150,20 @@ npm run prisma:migrate:supabase
 ```
 
 4. For local development, keep `DATABASE_URL=file:/tmp/navios-dev.db` and use normal `prisma:*` scripts.
+5. Run final connectivity rehearsal:
+
+```bash
+npm run supabase:rehearsal
+```
+
+## Test strategy
+
+- `npm run test` runs an e2e-like API flow:
+  - build app (`next build`)
+  - execute `scripts/test-api-flow.mjs`
+  - verify list/create/invalid-update/valid-update/detail/delete
+
+## Production checklist
+
+- See `docs.production-checklist.md`.
+- Auth/Authz draft: `docs.authz-spec.md`.

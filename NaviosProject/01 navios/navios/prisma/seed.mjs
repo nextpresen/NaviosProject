@@ -84,6 +84,7 @@ async function main() {
       update: {
         title: event.title,
         content: event.content,
+        author_id: "seed-user",
         latitude: event.latitude,
         longitude: event.longitude,
         event_date: new Date(event.event_date),
@@ -94,6 +95,7 @@ async function main() {
         id: event.id,
         title: event.title,
         content: event.content,
+        author_id: "seed-user",
         latitude: event.latitude,
         longitude: event.longitude,
         event_date: new Date(event.event_date),

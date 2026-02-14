@@ -11,6 +11,7 @@ model Event {
   id          String   @id @default(cuid())
   title       String
   content     String
+  author_id   String?
   latitude    Float
   longitude   Float
   event_date  DateTime

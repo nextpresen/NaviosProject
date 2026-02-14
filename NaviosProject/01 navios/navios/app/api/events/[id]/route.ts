@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
+import { canManageEvent, getAuthActor } from "@/lib/authz";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
 import type { Event } from "@/types/event";
@@ -75,6 +76,14 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const actor = getAuthActor(request);
+  if (!actor) {
+    return NextResponse.json(
+      fail("UNAUTHORIZED", "Sign-in is required for this action"),
+      { status: 401 },
+    );
+  }
+
   const parsedParams = paramsSchema.safeParse(await context.params);
   if (!parsedParams.success) {
     return NextResponse.json(
@@ -103,6 +112,20 @@ export async function PUT(
   }
 
   try {
+    const existing = await prisma.event.findUnique({
+      where: { id: parsedParams.data.id },
+      select: { id: true, author_id: true },
+    });
+    if (!existing) {
+      return NextResponse.json(fail("NOT_FOUND", "Event not found"), { status: 404 });
+    }
+    if (!canManageEvent(actor, existing.author_id)) {
+      return NextResponse.json(
+        fail("FORBIDDEN", "You do not have permission to edit this event"),
+        { status: 403 },
+      );
+    }
+
     const updated = await prisma.event.update({
       where: { id: parsedParams.data.id },
       data: {
@@ -131,9 +154,17 @@ export async function PUT(
 }
 
 export async function DELETE(
-  _: Request,
+  request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
+  const actor = getAuthActor(request);
+  if (!actor) {
+    return NextResponse.json(
+      fail("UNAUTHORIZED", "Sign-in is required for this action"),
+      { status: 401 },
+    );
+  }
+
   const parsedParams = paramsSchema.safeParse(await context.params);
   if (!parsedParams.success) {
     return NextResponse.json(
@@ -143,6 +174,20 @@ export async function DELETE(
   }
 
   try {
+    const existing = await prisma.event.findUnique({
+      where: { id: parsedParams.data.id },
+      select: { id: true, author_id: true },
+    });
+    if (!existing) {
+      return NextResponse.json(fail("NOT_FOUND", "Event not found"), { status: 404 });
+    }
+    if (!canManageEvent(actor, existing.author_id)) {
+      return NextResponse.json(
+        fail("FORBIDDEN", "You do not have permission to delete this event"),
+        { status: 403 },
+      );
+    }
+
     await prisma.event.delete({ where: { id: parsedParams.data.id } });
     return NextResponse.json(ok({ id: parsedParams.data.id }));
   } catch (error) {
