@@ -14,6 +14,8 @@ const events = [
     title: "日置市 春の花まつり 2026",
     content:
       "日置市最大級の春祭り。地元の屋台が50店舗以上出店し、ステージでは郷土芸能やライブ演奏が楽しめます。家族連れにもおすすめ。",
+    author_avatar_url: "https://api.dicebear.com/9.x/initials/svg?seed=hanako",
+    category: "festival",
     latitude: 31.5745,
     longitude: 130.3418,
     event_date: isoDate(0),
@@ -25,6 +27,8 @@ const events = [
     title: "吉利の丘 夕焼けフォトウォーク",
     content:
       "写真愛好家のための撮影イベント。プロカメラマンが同行し、夕焼けの撮影テクニックを教わりながら絶景スポットを巡ります。",
+    author_avatar_url: "https://api.dicebear.com/9.x/initials/svg?seed=takuya",
+    category: "culture",
     latitude: 31.57371,
     longitude: 130.345154,
     event_date: isoDate(0),
@@ -36,6 +40,8 @@ const events = [
     title: "隠れ家カフェ 木漏れ日 特別ランチ会",
     content:
       "地元農家から直送の旬の野菜を使った特別コースランチ。限定20名の予約制イベントです。テラス席から日置の山々を一望。",
+    author_avatar_url: "https://api.dicebear.com/9.x/initials/svg?seed=yui",
+    category: "gourmet",
     latitude: 31.5751,
     longitude: 130.348,
     event_date: isoDate(2),
@@ -47,6 +53,8 @@ const events = [
     title: "日吉古道ナイトハイク",
     content:
       "満月の夜に開催される特別なハイキングイベント。ガイド付きで歴史ある石畳の古道を月明かりの下で歩きます。ヘッドランプ貸出あり。",
+    author_avatar_url: "https://api.dicebear.com/9.x/initials/svg?seed=kentaro",
+    category: "nature",
     latitude: 31.5718,
     longitude: 130.343,
     event_date: isoDate(5),
@@ -58,6 +66,8 @@ const events = [
     title: "吉利川 桜ライトアップ",
     content:
       "川沿いの桜並木を幻想的にライトアップ。屋台の出店や地元ミュージシャンの演奏もあり。期間中毎日18:00〜21:00開催。",
+    author_avatar_url: "https://api.dicebear.com/9.x/initials/svg?seed=akari",
+    category: "festival",
     latitude: 31.5722,
     longitude: 130.3465,
     event_date: isoDate(-3),
@@ -69,6 +79,8 @@ const events = [
     title: "漁港朝市 海鮮BBQフェス",
     content:
       "毎月恒例の朝市に加え、今回は海鮮BBQ特別企画。朝獲れの新鮮な魚介を自分で焼いて楽しめます。朝6:00スタート。",
+    author_avatar_url: "https://api.dicebear.com/9.x/initials/svg?seed=daichi",
+    category: "gourmet",
     latitude: 31.576,
     longitude: 130.3502,
     event_date: isoDate(-10),
@@ -85,6 +97,8 @@ async function main() {
         title: event.title,
         content: event.content,
         author_id: "seed-user",
+        author_avatar_url: event.author_avatar_url,
+        category: event.category,
         latitude: event.latitude,
         longitude: event.longitude,
         event_date: new Date(event.event_date),
@@ -96,6 +110,8 @@ async function main() {
         title: event.title,
         content: event.content,
         author_id: "seed-user",
+        author_avatar_url: event.author_avatar_url,
+        category: event.category,
         latitude: event.latitude,
         longitude: event.longitude,
         event_date: new Date(event.event_date),

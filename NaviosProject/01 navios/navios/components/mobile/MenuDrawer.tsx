@@ -81,7 +81,7 @@ export function MenuDrawer({
           <div className="space-y-1">
             {[
               ["all", "🗺", "すべて", counts.all],
-              ["today", "🔥", "TODAY", counts.today],
+              ["today", "🔥", "いまココ", counts.today],
               ["upcoming", "📅", "開催予定", counts.upcoming],
               ["ended", "🕐", "終了済み", counts.ended],
             ].map(([key, icon, label, count]) => {

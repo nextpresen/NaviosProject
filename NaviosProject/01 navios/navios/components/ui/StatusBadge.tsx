@@ -6,7 +6,7 @@ interface StatusBadgeProps {
 }
 
 const STATUS_CONFIG = {
-  today: { label: "TODAY", emoji: "🔥", className: "bg-amber-100 text-amber-700" },
+  today: { label: "いまココ", emoji: "🔥", className: "bg-amber-100 text-amber-700" },
   upcoming: { label: "開催予定", emoji: "📅", className: "bg-blue-50 text-blue-700" },
   ended: { label: "終了", emoji: "🕐", className: "bg-slate-100 text-slate-500" },
 } as const;

@@ -14,6 +14,8 @@ function toEvent(input: {
   title: string;
   content: string;
   author_id: string | null;
+  author_avatar_url: string | null;
+  category: string;
   latitude: number;
   longitude: number;
   event_date: Date;
@@ -25,6 +27,8 @@ function toEvent(input: {
     title: input.title,
     content: input.content,
     author_id: input.author_id,
+    author_avatar_url: input.author_avatar_url,
+    category: input.category as Event["category"],
     latitude: input.latitude,
     longitude: input.longitude,
     event_date: input.event_date.toISOString().slice(0, 10),

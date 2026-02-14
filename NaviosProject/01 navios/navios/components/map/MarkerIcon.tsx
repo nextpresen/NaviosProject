@@ -1,23 +1,46 @@
 import type { EventStatus } from "../ui/StatusBadge";
+import type { EventCategory } from "@/types/event";
+
+const CATEGORY_CONFIG: Record<EventCategory, { icon: string; color: string; label: string }> = {
+  festival: { icon: "🎉", color: "#ef4444", label: "祭り" },
+  gourmet: { icon: "🍽", color: "#f97316", label: "グルメ" },
+  nature: { icon: "🌿", color: "#16a34a", label: "自然" },
+  culture: { icon: "🏮", color: "#8b5cf6", label: "文化" },
+  other: { icon: "🏷", color: "#64748b", label: "その他" },
+};
 
 const PIN_CONFIG = {
-  today: { pinClass: "pin-today", icon: "📍", short: "NOW" },
-  upcoming: { pinClass: "pin-upcoming", icon: "📌", short: "SOON" },
-  ended: { pinClass: "pin-ended", icon: "📍", short: "END" },
+  today: { pinClass: "pin-today", short: "NOW" },
+  upcoming: { pinClass: "pin-upcoming", short: "SOON" },
+  ended: { pinClass: "pin-ended", short: "END" },
 } as const;
 
-export function buildMarkerHTML(status: EventStatus) {
+function escapeAttr(value: string) {
+  return value.replaceAll("&", "&amp;").replaceAll('"', "&quot;").replaceAll("<", "&lt;").replaceAll(">", "&gt;");
+}
+
+export function buildMarkerHTML(
+  status: EventStatus,
+  category: EventCategory,
+  authorAvatarUrl?: string | null,
+  isSelected = false,
+) {
   const cfg = PIN_CONFIG[status];
+  const categoryConfig = CATEGORY_CONFIG[category] ?? CATEGORY_CONFIG.other;
+  const safeCategoryLabel = escapeAttr(categoryConfig.label);
+  const safeAvatar = authorAvatarUrl ? escapeAttr(authorAvatarUrl) : "";
 
   let extraHTML = `<span class="pin-label">${cfg.short}</span>`;
-  if (status === "today") {
+  if (isSelected) {
     extraHTML = `<span class="pin-pulse"></span><span class="pin-glow"></span><span class="pin-label">${cfg.short}</span>`;
   }
-  if (status === "upcoming") {
-    extraHTML = `<span class="pin-pulse"></span><span class="pin-label">${cfg.short}</span>`;
-  }
 
-  return `<div class="marker-pin ${cfg.pinClass}"><div class="pin-body"><span class="pin-icon">${cfg.icon}</span></div>${extraHTML}</div>`;
+  const categoryChip = `<span class="pin-category" style="background:${categoryConfig.color}" title="${safeCategoryLabel}">${categoryConfig.icon}</span>`;
+  const avatarHtml = safeAvatar
+    ? `<span class="pin-avatar"><img src="${safeAvatar}" alt="author avatar" /></span>`
+    : `<span class="pin-avatar pin-avatar-fallback">👤</span>`;
+
+  return `<div class="marker-pin ${cfg.pinClass}"><div class="pin-body">${avatarHtml}${categoryChip}</div>${extraHTML}</div>`;
 }
 
 export function markerSizeByStatus(status: EventStatus) {

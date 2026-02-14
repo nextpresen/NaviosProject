@@ -4,11 +4,12 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
-import type { Event } from "@/types/event";
+import type { Event, EventCategory } from "@/types/event";
 
 type FormState = {
   title: string;
   content: string;
+  category: EventCategory;
   latitude: string;
   longitude: string;
   event_date: string;
@@ -29,6 +30,7 @@ export default function NewEventPage() {
   const [form, setForm] = useState<FormState>({
     title: "",
     content: "",
+    category: "other",
     latitude: "31.57371",
     longitude: "130.345154",
     event_date: today,
@@ -74,6 +76,7 @@ export default function NewEventPage() {
         if (!cancelled) {
           setForm({
             ...event,
+            category: event.category ?? "other",
             latitude: String(event.latitude),
             longitude: String(event.longitude),
           });
@@ -143,6 +146,7 @@ export default function NewEventPage() {
         body: JSON.stringify({
           title: form.title,
           content: form.content,
+          category: form.category,
           latitude: Number(form.latitude),
           longitude: Number(form.longitude),
           event_date: form.event_date,
@@ -225,6 +229,21 @@ export default function NewEventPage() {
               className="mt-1.5 w-full min-h-28 rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
               placeholder="イベント説明"
             />
+          </label>
+
+          <label className="block">
+            <span className="text-sm font-semibold text-slate-700">カテゴリ</span>
+            <select
+              value={form.category}
+              onChange={(e) => update("category", e.target.value as EventCategory)}
+              className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+            >
+              <option value="other">その他</option>
+              <option value="festival">祭り</option>
+              <option value="gourmet">グルメ</option>
+              <option value="nature">自然</option>
+              <option value="culture">文化</option>
+            </select>
           </label>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

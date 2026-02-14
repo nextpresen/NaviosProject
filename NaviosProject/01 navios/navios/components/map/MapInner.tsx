@@ -112,8 +112,14 @@ export function MapInner({ events, selectedEventId, onSelectEvent, onReady }: Ma
 
       {events.map((event) => {
         const status = getEventStatus(event);
+        const isSelected = selectedEventId === event.id;
+        const avatarUrl =
+          event.author_avatar_url ??
+          (event.author_id
+            ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(event.author_id)}`
+            : null);
         const icon = L.divIcon({
-          html: buildMarkerHTML(status),
+          html: buildMarkerHTML(status, event.category, avatarUrl, isSelected),
           className: "",
           ...markerSizeByStatus(status),
         });

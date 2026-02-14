@@ -43,6 +43,10 @@ export function AuthControls() {
     router.refresh();
   };
 
+  const displayName = actor
+    ? actor.email.split("@")[0] || actor.userId
+    : "";
+
   return (
     <div className="flex items-center gap-2">
       {loading ? null : actor ? (
@@ -63,9 +67,20 @@ export function AuthControls() {
           >
             ログアウト
           </button>
-          <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white text-xs font-bold cursor-default">
-            {actor.role === "admin" ? "A" : "U"}
-          </div>
+          <Link
+            href="/me"
+            className="inline-flex items-center gap-2 rounded-xl border border-slate-300 bg-white px-2.5 py-1.5 hover:bg-slate-50 transition"
+          >
+            <span className="w-6 h-6 rounded-full bg-gradient-to-br from-slate-700 to-slate-900 flex items-center justify-center text-white">
+              <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15 19a4 4 0 00-8 0" />
+                <circle cx="11" cy="8" r="3" />
+              </svg>
+            </span>
+            <span className="max-w-[120px] truncate text-xs font-semibold text-slate-700">
+              {displayName}
+            </span>
+          </Link>
         </>
       ) : (
         <Link

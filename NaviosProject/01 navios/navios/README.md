@@ -51,6 +51,7 @@ Open:
 - Main map: `http://localhost:3000/`
 - New post page: `http://localhost:3000/new`
 - Login page: `http://localhost:3000/login`
+- User indicator page: `http://localhost:3000/me`
 
 ## Useful scripts
 
@@ -86,6 +87,7 @@ Request body:
 {
   "title": "イベント名",
   "content": "本文",
+  "category": "festival|gourmet|nature|culture|other",
   "latitude": 31.573,
   "longitude": 130.345,
   "event_date": "2026-03-01",
@@ -96,6 +98,13 @@ Request body:
 
 - Requires logged-in session and stores `author_id = session.userId`.
 - `event_image` は `http/https` URL またはフォームアップロード由来の `data:image/...` を受け付けます。
+- `author_avatar_url` は省略時にログインユーザーのメールアドレスから自動生成されます。
+
+Map marker behavior:
+
+- ピン本体は時間軸ステータス（NOW/SOON/END）
+- カテゴリはピン上のカテゴリチップ（絵文字+色）
+- アニメーションは選択中ピンのみ
 
 ### `GET /api/events/:id`
 

@@ -5,7 +5,7 @@ import { getSessionActorFromRequest } from "@/lib/auth-session";
 import { getEventStatus } from "@/lib/event-status";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
-import type { Event, EventFilter } from "@/types/event";
+import type { Event, EventCategory, EventFilter } from "@/types/event";
 
 const statusSchema = z.enum(["all", "today", "upcoming", "ended"]);
 const querySchema = z.object({
@@ -35,6 +35,8 @@ const imageSchema = z
 const eventCreateSchema = z.object({
   title: z.string().trim().min(1).max(120),
   content: z.string().trim().min(1).max(5000),
+  category: z.enum(["festival", "gourmet", "nature", "culture", "other"]).optional(),
+  author_avatar_url: z.string().url().max(2048).optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
   event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
@@ -47,6 +49,8 @@ function toEvent(input: {
   title: string;
   content: string;
   author_id: string | null;
+  author_avatar_url: string | null;
+  category: string;
   latitude: number;
   longitude: number;
   event_date: Date;
@@ -58,12 +62,18 @@ function toEvent(input: {
     title: input.title,
     content: input.content,
     author_id: input.author_id,
+    author_avatar_url: input.author_avatar_url,
+    category: (input.category as EventCategory) ?? "other",
     latitude: input.latitude,
     longitude: input.longitude,
     event_date: input.event_date.toISOString().slice(0, 10),
     expire_date: input.expire_date.toISOString().slice(0, 10),
     event_image: input.event_image,
   };
+}
+
+function fallbackAvatarFromEmail(email: string) {
+  return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(email)}`;
 }
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -185,6 +195,8 @@ export async function POST(request: Request) {
         title: payload.title,
         content: payload.content,
         author_id: actor.userId,
+        author_avatar_url: payload.author_avatar_url ?? fallbackAvatarFromEmail(actor.email),
+        category: payload.category ?? "other",
         latitude: payload.latitude,
         longitude: payload.longitude,
         event_date: new Date(payload.event_date),

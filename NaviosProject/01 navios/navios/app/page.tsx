@@ -260,23 +260,34 @@ export default function HomePage() {
         .post-card.active { border-color: #2a91ff; box-shadow: 0 0 0 3px rgba(42,145,255,.15), 0 12px 28px rgba(15,23,42,.12); }
 
         .marker-pin { position: relative; width: 44px; height: 56px; display: flex; align-items: flex-start; justify-content: center; filter: drop-shadow(0 3px 6px rgba(15,23,42,.25)); }
-        .marker-pin .pin-body { width: 38px; height: 38px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: linear-gradient(135deg,#94a3b8,#64748b); border: 3px solid #fff; display: flex; align-items: center; justify-content: center; }
-        .marker-pin .pin-icon { transform: rotate(45deg); font-size: 15px; line-height: 1; }
+        .marker-pin .pin-body { width: 38px; height: 38px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #fff; border: 3px solid transparent; display: flex; align-items: center; justify-content: center; position: relative; overflow: visible; }
+        .marker-pin .pin-body::before { content: ""; position: absolute; inset: -3px; border-radius: inherit; z-index: -1; }
+        .marker-pin .pin-avatar { width: 24px; height: 24px; border-radius: 999px; overflow: hidden; transform: rotate(45deg); border: 2px solid #fff; box-shadow: 0 2px 5px rgba(15,23,42,.22); background: #f8fafc; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1; }
+        .marker-pin .pin-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; transform: rotate(-45deg); }
+        .marker-pin .pin-avatar-fallback { color: #475569; }
         .marker-pin .pin-label { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; }
+        .marker-pin .pin-category { position: absolute; top: -4px; left: -4px; width: 16px; height: 16px; border-radius: 999px; border: 2px solid #fff; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; font-size: 9px; line-height: 1; box-shadow: 0 2px 5px rgba(15,23,42,.25); }
+        .marker-pin .pin-pulse { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; border-radius: 50%; animation: markerPulse 1.5s ease-out infinite; }
+        .marker-pin .pin-glow { position: absolute; inset: -8px; border-radius: 50%; }
 
         .marker-pin.pin-today { width: 52px; height: 64px; }
-        .marker-pin.pin-today .pin-body { width: 46px; height: 46px; background: linear-gradient(135deg,#f59e0b,#d97706); }
+        .marker-pin.pin-today .pin-body { width: 46px; height: 46px; }
+        .marker-pin.pin-today .pin-body::before { background: linear-gradient(135deg,#f59e0b,#d97706); }
         .marker-pin.pin-today .pin-label { background: linear-gradient(135deg,#dc2626,#b91c1c); color: #fff; }
-        .marker-pin.pin-today .pin-pulse { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 16px; height: 16px; border-radius: 50%; background: rgba(245,158,11,.4); animation: markerPulse 1.5s ease-out infinite; }
-        .marker-pin.pin-today .pin-glow { position: absolute; inset: -8px; border-radius: 50%; background: radial-gradient(circle, rgba(245,158,11,.2) 0%, transparent 70%); }
+        .marker-pin.pin-today .pin-pulse { background: rgba(245,158,11,.4); }
+        .marker-pin.pin-today .pin-glow { background: radial-gradient(circle, rgba(245,158,11,.2) 0%, transparent 70%); }
 
-        .marker-pin.pin-upcoming .pin-body { background: linear-gradient(135deg,#2a91ff,#0f5ce1); }
+        .marker-pin.pin-upcoming .pin-body::before { background: linear-gradient(135deg,#2a91ff,#0f5ce1); }
         .marker-pin.pin-upcoming .pin-label { background: #dbeafe; color: #1d4ed8; }
-        .marker-pin.pin-upcoming .pin-pulse { position: absolute; bottom: -4px; left: 50%; transform: translateX(-50%); width: 12px; height: 12px; border-radius: 50%; background: rgba(42,145,255,.35); animation: markerPulse 2s ease-out infinite; }
+        .marker-pin.pin-upcoming .pin-pulse { background: rgba(42,145,255,.35); }
+        .marker-pin.pin-upcoming .pin-glow { background: radial-gradient(circle, rgba(42,145,255,.2) 0%, transparent 70%); }
 
         .marker-pin.pin-ended { opacity: .55; width: 36px; height: 48px; }
         .marker-pin.pin-ended .pin-body { width: 32px; height: 32px; }
+        .marker-pin.pin-ended .pin-body::before { background: linear-gradient(135deg,#94a3b8,#64748b); }
         .marker-pin.pin-ended .pin-label { background: #f1f5f9; color: #94a3b8; }
+        .marker-pin.pin-ended .pin-pulse { background: rgba(148,163,184,.35); }
+        .marker-pin.pin-ended .pin-glow { background: radial-gradient(circle, rgba(148,163,184,.2) 0%, transparent 70%); }
 
         @keyframes markerPulse {
           0% { transform: translateX(-50%) scale(1); opacity: .8; }
