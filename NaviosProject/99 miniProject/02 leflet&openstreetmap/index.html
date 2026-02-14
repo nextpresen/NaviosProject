@@ -230,8 +230,8 @@
       }
 
       #map {
-        height: 70vh;
-        min-height: 420px;
+        height: 55vh;
+        min-height: 320px;
       }
     }
   </style>
@@ -261,7 +261,7 @@
         <div id="postList" class="panel-body"></div>
       </aside>
 
-      <section class="map-wrap">
+      <section id="mapSection" class="map-wrap">
         <div class="map-overlay">
           <div class="map-note">ピンを押してポップアップから詳細へ</div>
           <div class="map-style">
@@ -378,10 +378,25 @@
       </article>
     `).join("");
 
+    const mapSection = document.getElementById("mapSection");
+    const isMobile = () => window.matchMedia("(max-width: 960px)").matches;
+
     document.querySelectorAll(".focus-btn").forEach((button) => {
       button.addEventListener("click", () => {
         const marker = markerById[button.dataset.id];
         const point = marker.getLatLng();
+
+        if (isMobile()) {
+          mapSection.scrollIntoView({ behavior: "smooth", block: "start" });
+          // Scroll animation後にmapサイズと座標移動を安定させる
+          window.setTimeout(() => {
+            map.invalidateSize();
+            map.flyTo(point, 17, { duration: 0.8 });
+            window.setTimeout(() => marker.openPopup(), 350);
+          }, 320);
+          return;
+        }
+
         map.flyTo(point, 17, { duration: 0.8 });
         marker.openPopup();
       });
