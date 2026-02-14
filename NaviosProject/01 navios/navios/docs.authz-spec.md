@@ -1,4 +1,4 @@
-# Authentication / Authorization Spec (Pre-Implementation)
+# Authentication / Authorization Spec
 
 ## Scope
 
@@ -10,15 +10,14 @@
 ## Data model
 
 - `Event.author_id` (nullable string)
-  - set on create when actor exists
-  - legacy/null events are treated as ownerless
+  - set on create from session user id
+  - legacy/null events are treated as ownerless and can only be managed by admin
 
 ## API authorization policy
 
 - `POST /api/events`
-  - actor optional for now
-  - if actor exists, save `author_id`
-  - if no actor, create as ownerless (`author_id = null`)
+  - no actor -> `401 UNAUTHORIZED`
+  - save `author_id = session.user.id`
 - `PUT /api/events/:id`
   - no actor -> `401 UNAUTHORIZED`
   - event not found -> `404 NOT_FOUND`
@@ -26,14 +25,20 @@
 - `DELETE /api/events/:id`
   - same rules as `PUT`
 
-## Temporary actor resolution (until real login)
+## Session model
 
-- Server reads:
-  - `x-user-id`
-  - `x-user-role` (`admin` or `user`)
-- Client generates persistent local actor id via localStorage (`navios_actor_id`) and sends `x-user-id`.
+- Cookie-based signed session (`navios_session`) is used.
+- Login API:
+  - `POST /api/auth/login`
+  - `POST /api/auth/logout`
+  - `GET /api/auth/session`
+- Session payload:
+  - `userId`
+  - `role` (`user` or `admin`)
+  - `email`
 
-## Planned replacement with real auth
+## User source
 
-- Replace header-based actor resolution with session-based auth provider (Auth.js planned).
-- Keep ownership check logic unchanged (`author_id === session.user.id` or admin role).
+- `AUTH_USERS_JSON` env can provide users:
+  - `[{\"id\":\"...\",\"email\":\"...\",\"password\":\"...\",\"role\":\"user|admin\"}]`
+- If not set, local demo users are available for development.

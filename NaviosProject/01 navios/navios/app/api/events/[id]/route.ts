@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
-import { canManageEvent, getAuthActor } from "@/lib/authz";
+import { getSessionActorFromRequest } from "@/lib/auth-session";
+import { canManageEvent } from "@/lib/authz";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
 import type { Event } from "@/types/event";
@@ -24,6 +25,7 @@ function toEvent(input: {
   id: string;
   title: string;
   content: string;
+  author_id: string | null;
   latitude: number;
   longitude: number;
   event_date: Date;
@@ -34,6 +36,7 @@ function toEvent(input: {
     id: input.id,
     title: input.title,
     content: input.content,
+    author_id: input.author_id,
     latitude: input.latitude,
     longitude: input.longitude,
     event_date: input.event_date.toISOString().slice(0, 10),
@@ -76,7 +79,7 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const actor = getAuthActor(request);
+  const actor = getSessionActorFromRequest(request);
   if (!actor) {
     return NextResponse.json(
       fail("UNAUTHORIZED", "Sign-in is required for this action"),
@@ -157,7 +160,7 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const actor = getAuthActor(request);
+  const actor = getSessionActorFromRequest(request);
   if (!actor) {
     return NextResponse.json(
       fail("UNAUTHORIZED", "Sign-in is required for this action"),

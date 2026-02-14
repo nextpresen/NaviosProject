@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { EventActions } from "@/components/event/EventActions";
+import { getSessionActorFromServer } from "@/lib/auth-session";
+import { canManageEvent } from "@/lib/authz";
 import { EventDetail } from "@/components/event/EventDetail";
 import { daysUntilText, formatDateRange, getEventStatus } from "@/lib/event-status";
 import { MOCK_EVENTS } from "@/lib/mock-events";
@@ -11,6 +13,7 @@ function toEvent(input: {
   id: string;
   title: string;
   content: string;
+  author_id: string | null;
   latitude: number;
   longitude: number;
   event_date: Date;
@@ -21,6 +24,7 @@ function toEvent(input: {
     id: input.id,
     title: input.title,
     content: input.content,
+    author_id: input.author_id,
     latitude: input.latitude,
     longitude: input.longitude,
     event_date: input.event_date.toISOString().slice(0, 10),
@@ -47,6 +51,7 @@ export default async function EventDetailPage({
 }) {
   const { id } = await params;
   const event = await getEventById(id);
+  const actor = await getSessionActorFromServer();
 
   if (!event) {
     notFound();
@@ -71,7 +76,10 @@ export default async function EventDetailPage({
         daysText={daysUntilText(event)}
         status={getEventStatus(event)}
       />
-      <EventActions id={event.id} />
+      <EventActions
+        id={event.id}
+        canManage={Boolean(actor && canManageEvent(actor, event.author_id ?? null))}
+      />
     </main>
   );
 }

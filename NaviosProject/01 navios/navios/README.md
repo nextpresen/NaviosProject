@@ -28,6 +28,8 @@ Default local DB:
 
 ```env
 DATABASE_URL="file:/tmp/navios-dev.db"
+AUTH_SECRET="change-this-secret"
+AUTH_USERS_JSON='[{"id":"demo-user","email":"user@navios.local","password":"user1234","role":"user"},{"id":"demo-admin","email":"admin@navios.local","password":"admin1234","role":"admin"}]'
 ```
 
 3. Prepare database
@@ -48,6 +50,7 @@ Open:
 
 - Main map: `http://localhost:3000/`
 - New post page: `http://localhost:3000/new`
+- Login page: `http://localhost:3000/login`
 
 ## Useful scripts
 
@@ -91,7 +94,7 @@ Request body:
 }
 ```
 
-- If `x-user-id` is provided, event ownership (`author_id`) is stored.
+- Requires logged-in session and stores `author_id = session.userId`.
 
 ### `GET /api/events/:id`
 
@@ -100,12 +103,22 @@ Request body:
 ### `PUT /api/events/:id`
 
 - Updates an event (same payload schema as `POST /api/events`)
-- Requires owner/admin actor (`x-user-id`, optional `x-user-role=admin`)
+- Requires owner/admin session
 
 ### `DELETE /api/events/:id`
 
 - Deletes an event by id
-- Requires owner/admin actor (`x-user-id`, optional `x-user-role=admin`)
+- Requires owner/admin session
+
+UI behavior:
+
+- On `/event/:id`, edit/delete buttons are shown only to owner/admin.
+
+### Auth APIs
+
+- `POST /api/auth/login`
+- `POST /api/auth/logout`
+- `GET /api/auth/session`
 
 ### `GET /api/geocode?q=鹿児島市`
 

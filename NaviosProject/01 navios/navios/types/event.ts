@@ -2,6 +2,7 @@ export interface Event {
   id: string;
   title: string;
   content: string;
+  author_id?: string | null;
   latitude: number;
   longitude: number;
   event_date: string;

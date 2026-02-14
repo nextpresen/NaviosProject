@@ -11,25 +11,30 @@ function day(offset = 0) {
 }
 
 async function main() {
-  const actorId = "test-actor-1";
+  const loginRoutePath = path.resolve(".next/server/app/api/auth/login/route.js");
   const eventsRoutePath = path.resolve(".next/server/app/api/events/route.js");
   const eventIdRoutePath = path.resolve(".next/server/app/api/events/[id]/route.js");
 
+  await access(loginRoutePath, fsConstants.R_OK);
   await access(eventsRoutePath, fsConstants.R_OK);
   await access(eventIdRoutePath, fsConstants.R_OK);
 
+  const loginRoute = await import(pathToFileURL(loginRoutePath).href);
   const eventsRoute = await import(pathToFileURL(eventsRoutePath).href);
   const eventByIdRoute = await import(pathToFileURL(eventIdRoutePath).href);
 
+  const loginUserland = loginRoute.default?.routeModule?.userland ?? {};
   const eventsUserland = eventsRoute.default?.routeModule?.userland ?? {};
   const eventByIdUserland = eventByIdRoute.default?.routeModule?.userland ?? {};
 
+  const postLogin = loginUserland.POST;
   const getEvents = eventsUserland.GET;
   const postEvents = eventsUserland.POST;
   const getEventById = eventByIdUserland.GET;
   const putEventById = eventByIdUserland.PUT;
   const deleteEventById = eventByIdUserland.DELETE;
 
+  assert.equal(typeof postLogin, "function", "POST /api/auth/login handler should exist");
   assert.equal(typeof getEvents, "function", "GET /api/events handler should exist");
   assert.equal(typeof postEvents, "function", "POST /api/events handler should exist");
   assert.equal(typeof getEventById, "function", "GET /api/events/:id handler should exist");
@@ -38,6 +43,39 @@ async function main() {
 
   const listRes = await getEvents(new Request("http://localhost/api/events"));
   assert.equal(listRes.status, 200, "GET /api/events should be 200");
+
+  const loginRes = await postLogin(
+    new Request("http://localhost/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "user@navios.local", password: "user1234" }),
+    }),
+  );
+  assert.equal(loginRes.status, 200, "user login should be 200");
+  const userCookie = loginRes.headers.get("set-cookie");
+  assert.ok(userCookie, "user login should set cookie");
+
+  const adminLoginRes = await postLogin(
+    new Request("http://localhost/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "admin@navios.local", password: "admin1234" }),
+    }),
+  );
+  assert.equal(adminLoginRes.status, 200, "admin login should be 200");
+  const adminCookie = adminLoginRes.headers.get("set-cookie");
+  assert.ok(adminCookie, "admin login should set cookie");
+
+  const user2LoginRes = await postLogin(
+    new Request("http://localhost/api/auth/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email: "user2@navios.local", password: "user2234" }),
+    }),
+  );
+  assert.equal(user2LoginRes.status, 200, "second user login should be 200");
+  const user2Cookie = user2LoginRes.headers.get("set-cookie");
+  assert.ok(user2Cookie, "second user login should set cookie");
 
   const stamp = Date.now();
   const createPayload = {
@@ -53,7 +91,7 @@ async function main() {
   const createdRes = await postEvents(
     new Request("http://localhost/api/events", {
       method: "POST",
-      headers: { "Content-Type": "application/json", "x-user-id": actorId },
+      headers: { "Content-Type": "application/json", cookie: userCookie },
       body: JSON.stringify(createPayload),
     }),
   );
@@ -65,7 +103,7 @@ async function main() {
   const invalidEditRes = await putEventById(
     new Request(`http://localhost/api/events/${eventId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", "x-user-id": actorId },
+      headers: { "Content-Type": "application/json", cookie: userCookie },
       body: JSON.stringify({ ...createPayload, expire_date: day(-1) }),
     }),
     { params: Promise.resolve({ id: eventId }) },
@@ -75,18 +113,28 @@ async function main() {
   const forbiddenUpdateRes = await putEventById(
     new Request(`http://localhost/api/events/${eventId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", "x-user-id": "other-actor" },
+      headers: { "Content-Type": "application/json", cookie: user2Cookie },
       body: JSON.stringify({ ...createPayload, title: `Forbidden ${stamp}` }),
     }),
     { params: Promise.resolve({ id: eventId }) },
   );
   assert.equal(forbiddenUpdateRes.status, 403, "non-owner should return 403");
 
+  const adminUpdateRes = await putEventById(
+    new Request(`http://localhost/api/events/${eventId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", cookie: adminCookie },
+      body: JSON.stringify({ ...createPayload, title: `Admin Updated ${stamp}` }),
+    }),
+    { params: Promise.resolve({ id: eventId }) },
+  );
+  assert.equal(adminUpdateRes.status, 200, "admin should be able to update");
+
   const updatedTitle = `Flow Updated ${stamp}`;
   const updatedRes = await putEventById(
     new Request(`http://localhost/api/events/${eventId}`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", "x-user-id": actorId },
+      headers: { "Content-Type": "application/json", cookie: userCookie },
       body: JSON.stringify({ ...createPayload, title: updatedTitle }),
     }),
     { params: Promise.resolve({ id: eventId }) },
@@ -108,7 +156,7 @@ async function main() {
   const deletedRes = await deleteEventById(
     new Request(`http://localhost/api/events/${eventId}`, {
       method: "DELETE",
-      headers: { "x-user-id": actorId },
+      headers: { cookie: userCookie },
     }),
     { params: Promise.resolve({ id: eventId }) },
   );

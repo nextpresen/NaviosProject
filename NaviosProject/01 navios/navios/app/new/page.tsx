@@ -3,7 +3,6 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useMemo, useState } from "react";
-import { getOrCreateActorId } from "@/lib/client-actor";
 import type { Event } from "@/types/event";
 
 type FormState = {
@@ -39,11 +38,9 @@ export default function NewEventPage() {
   const [submitting, setSubmitting] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [actorId, setActorId] = useState<string | null>(null);
 
   useEffect(() => {
     setEditingId(new URLSearchParams(window.location.search).get("id"));
-    setActorId(getOrCreateActorId());
   }, []);
 
   useEffect(() => {
@@ -108,10 +105,7 @@ export default function NewEventPage() {
     try {
       const response = await fetch(isEdit ? `/api/events/${editingId}` : "/api/events", {
         method: isEdit ? "PUT" : "POST",
-        headers: {
-          "Content-Type": "application/json",
-          ...(actorId ? { "x-user-id": actorId } : {}),
-        },
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           title: form.title,
           content: form.content,
