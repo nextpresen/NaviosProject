@@ -7,18 +7,34 @@
 > **目的**: HTMLモックアップをNext.js (App Router) でプロダクション実装するための設計ドキュメント
 
 ---
+## 0. 現在の実装状態 (2026-02-14)
+
+- `MapContainer -> MapInner` の `dynamic import (ssr:false)` 実装済み
+- `Leaflet + react-leaflet` でマーカー/ポップアップ/スタイル切替を実装済み
+- `app/page.tsx` はクライアントで `/api/events` をフェッチして描画
+- `app/api/events/route.ts` は Prisma CRUD を実装（DB未接続時はモック返却）
+- `store/useAppStore.ts` + `hooks/useEvents.ts` + `lib/event-status.ts` にロジック統一済み
+- `app/new/page.tsx` は投稿フォームから `POST /api/events` 接続済み
+- `app/event/[id]/page.tsx` は Prisma からイベント詳細表示（DB未接続時はモック）
+- 主要UI画像は `next/image` へ置換済み（`unoptimized` 運用）
+- ローカルDBは `.env` の `DATABASE_URL=file:/tmp/navios-dev.db` で固定
+- Prisma 運用は `npm run prisma:migrate` (`db push`) + `npm run prisma:seed` で確定
+- `GET/POST /api/events` は `zod` バリデーション導入済み
+- `GET /api/geocode` はサーバーキャッシュ(TTL) + レート制限(1req/sec/IP) を実装済み
+
+---
 
 ## 1. 技術スタック
 
 | 領域 | 技術 | 理由 |
 |---|---|---|
-| フレームワーク | **Next.js 14+ (App Router)** | RSC + SSR でSEO・パフォーマンス最適 |
+| フレームワーク | **Next.js 16 (App Router)** | App Router + Turbopack で開発/ビルド高速化 |
 | スタイリング | **Tailwind CSS** | モックアップとの一貫性 |
 | 地図 | **react-leaflet** | Leafletのreactラッパー、SSR対応は `dynamic import` |
 | タイルサーバー | **CARTO / OpenStreetMap** | 無料・商用利用可 |
 | 状態管理 | **Zustand** | 軽量、イベントフィルター・マップ状態管理用 |
-| データ取得 | **Server Actions + Prisma** | Event CRUD |
-| DB | **PostgreSQL** (Supabase推奨) | PostGIS拡張で地理クエリ対応 |
+| データ取得 | **Client Fetch + Route Handlers + Prisma** | `GET/POST /api/events` で Event CRUD |
+| DB | **SQLite(ローカル) / PostgreSQL(本番) + Prisma ORM (v6)** | 開発はローカル固定、本番はSupabaseへ移行可能 |
 | 画像 | **Supabase Storage** or **Cloudinary** | event_image URL管理 |
 | ジオコーディング | **Nominatim API** (OSM) | 地名検索 |
 | フォント | **Inter** (next/font) | モックアップと同一 |
@@ -30,6 +46,8 @@
 ```
 navios/
 ├── app/
+│   ├── globals.css             ← グローバルスタイル
+│   ├── favicon.ico             ← アプリアイコン
 │   ├── layout.tsx              ← ルートレイアウト (フォント, メタ, Providers)
 │   ├── page.tsx                ← トップページ (マップ画面)
 │   ├── event/
@@ -101,8 +119,13 @@ navios/
 ├── public/
 │   └── (静的アセット)
 │
+├── eslint.config.mjs
+├── postcss.config.mjs
+├── next-env.d.ts
 ├── tailwind.config.ts
 ├── next.config.js
+├── tsconfig.json
+├── package-lock.json
 └── package.json
 ```
 
@@ -128,8 +151,8 @@ navios/
 └─────────────────────────────────────────────┘
 ```
 
-- **Server Component**: `page.tsx` でイベントデータをfetch → 子コンポーネントにprops
-- **Client Component**: `MapContainer`, `BottomSheet`, `MenuDrawer`, `SearchInput` は `"use client"`
+- **現状**: `page.tsx` は `"use client"` で `/api/events` を取得し、`useAppStore/useEvents` で状態管理
+- **Client Component**: `MapContainer`, `MapInner`, `BottomSheet`, `MenuDrawer`, `SearchInput` は `"use client"`
 
 ### 3-2. コンポーネント対応表 (HTML → React)
 
@@ -270,6 +293,9 @@ interface AppState {
 ?lat=31.57&lng=130.34&radius=10 (optional, km)
 ```
 
+- **実装状況**: Prisma で `Event` 一覧取得後、status / q / 半径条件でフィルター
+- **フォールバック**: DB未接続時は `lib/mock-events.ts` を返却
+
 ### `POST /api/events`
 
 ```json
@@ -284,9 +310,18 @@ interface AppState {
 }
 ```
 
+- **実装状況**: バリデーション後に Prisma `event.create` で保存
+
+### `GET /event/[id]` (画面)
+
+- **実装状況**: `app/event/[id]/page.tsx` で Prisma `findUnique` により詳細表示
+- **フォールバック**: DB未接続時は `lib/mock-events.ts` から表示
+
 ### `GET /api/geocode?q=鹿児島市`
 
 Nominatimへのプロキシ (レート制限: 1req/sec を考慮したサーバーサイドキャッシュ)
+
+- **実装状況**: メモリキャッシュ(TTL 5分) + 1req/sec/IP の制限を追加済み
 
 ---
 
