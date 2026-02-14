@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { EventActions } from "@/components/event/EventActions";
 import { EventDetail } from "@/components/event/EventDetail";
 import { daysUntilText, formatDateRange, getEventStatus } from "@/lib/event-status";
 import { MOCK_EVENTS } from "@/lib/mock-events";
@@ -70,6 +71,7 @@ export default async function EventDetailPage({
         daysText={daysUntilText(event)}
         status={getEventStatus(event)}
       />
+      <EventActions id={event.id} />
     </main>
   );
 }

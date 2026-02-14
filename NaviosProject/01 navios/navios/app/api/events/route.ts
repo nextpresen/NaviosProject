@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
+import { fail, ok } from "@/lib/api-response";
 import { getEventStatus } from "@/lib/event-status";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
@@ -105,7 +106,7 @@ export async function GET(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid query", issues: parsed.error.flatten() },
+      fail("VALIDATION_ERROR", "Invalid query", parsed.error.flatten()),
       { status: 400 },
     );
   }
@@ -121,9 +122,11 @@ export async function GET(request: Request) {
   try {
     const rows = await prisma.event.findMany({ orderBy: { created_at: "desc" } });
     const events = rows.map(toEvent);
-    return NextResponse.json({ events: filterEvents(events, params) });
+    const filtered = filterEvents(events, params);
+    return NextResponse.json({ ...ok({ events: filtered }), events: filtered });
   } catch {
-    return NextResponse.json({ events: filterEvents(MOCK_EVENTS, params) });
+    const filtered = filterEvents(MOCK_EVENTS, params);
+    return NextResponse.json({ ...ok({ events: filtered }), events: filtered });
   }
 }
 
@@ -133,7 +136,7 @@ export async function POST(request: Request) {
 
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid payload", issues: parsed.error.flatten() },
+      fail("VALIDATION_ERROR", "Invalid payload", parsed.error.flatten()),
       { status: 400 },
     );
   }
@@ -142,7 +145,9 @@ export async function POST(request: Request) {
 
   if (payload.expire_date < payload.event_date) {
     return NextResponse.json(
-      { error: "Invalid payload", issues: { expire_date: ["expire_date must be >= event_date"] } },
+      fail("VALIDATION_ERROR", "Invalid payload", {
+        expire_date: ["expire_date must be >= event_date"],
+      }),
       { status: 400 },
     );
   }
@@ -160,10 +165,11 @@ export async function POST(request: Request) {
       },
     });
 
-    return NextResponse.json({ event: toEvent(created) }, { status: 201 });
+    const event = toEvent(created);
+    return NextResponse.json({ ...ok({ event }), event }, { status: 201 });
   } catch (error) {
     return NextResponse.json(
-      { error: "Failed to create event", detail: String(error) },
+      fail("DB_CREATE_FAILED", "Failed to create event", String(error)),
       { status: 500 },
     );
   }

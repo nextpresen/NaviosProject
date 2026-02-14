@@ -27,8 +27,14 @@ export function useGeocode(query: string) {
           setResults([]);
           return;
         }
-        const payload: { results: GeocodeResult[] } = await response.json();
-        setResults(payload.results ?? []);
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          results?: GeocodeResult[];
+          data?: { results?: GeocodeResult[] };
+        };
+
+        const nextResults = payload.results ?? payload.data?.results ?? [];
+        setResults(nextResults);
       } catch {
         setResults([]);
       } finally {

@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { fail, ok } from "@/lib/api-response";
 
 interface NominatimResponse {
   place_id: number;
@@ -42,7 +43,7 @@ export async function GET(request: Request) {
   const query = searchParams.get("q")?.trim();
 
   if (!query || query.length < 2) {
-    return NextResponse.json({ results: [] });
+    return NextResponse.json({ ...ok({ results: [] }), results: [] });
   }
 
   const key = normalizeQuery(query);
@@ -50,14 +51,14 @@ export async function GET(request: Request) {
 
   const cached = cache.get(key);
   if (cached && cached.expiresAt > now) {
-    return NextResponse.json({ results: cached.results, source: "cache" });
+    return NextResponse.json({ ...ok({ results: cached.results, source: "cache" }), results: cached.results, source: "cache" });
   }
 
   const ip = getIp(request);
   const last = lastRequestByIp.get(ip) ?? 0;
   if (now - last < MIN_INTERVAL_MS) {
     return NextResponse.json(
-      { error: "Rate limit exceeded. Please wait a moment." },
+      fail("RATE_LIMIT", "Rate limit exceeded. Please wait a moment."),
       { status: 429 },
     );
   }
@@ -75,7 +76,7 @@ export async function GET(request: Request) {
     });
 
     if (!response.ok) {
-      return NextResponse.json({ results: [] }, { status: 200 });
+      return NextResponse.json({ ...ok({ results: [] }), results: [] }, { status: 200 });
     }
 
     const data = (await response.json()) as NominatimResponse[];
@@ -88,8 +89,8 @@ export async function GET(request: Request) {
 
     cache.set(key, { results, expiresAt: now + CACHE_TTL_MS });
 
-    return NextResponse.json({ results, source: "live" });
+    return NextResponse.json({ ...ok({ results, source: "live" }), results, source: "live" });
   } catch {
-    return NextResponse.json({ results: [] }, { status: 200 });
+    return NextResponse.json({ ...ok({ results: [] }), results: [] }, { status: 200 });
   }
 }

@@ -46,8 +46,12 @@ export default function HomePage() {
           setEvents(MOCK_EVENTS);
           return;
         }
-        const payload: { events: Event[] } = await response.json();
-        setEvents(payload.events ?? []);
+        const payload = (await response.json()) as {
+          ok?: boolean;
+          events?: Event[];
+          data?: { events?: Event[] };
+        };
+        setEvents(payload.events ?? payload.data?.events ?? []);
       } catch {
         setEvents(MOCK_EVENTS);
       } finally {

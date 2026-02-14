@@ -16,11 +16,18 @@
 - `store/useAppStore.ts` + `hooks/useEvents.ts` + `lib/event-status.ts` にロジック統一済み
 - `app/new/page.tsx` は投稿フォームから `POST /api/events` 接続済み
 - `app/event/[id]/page.tsx` は Prisma からイベント詳細表示（DB未接続時はモック）
+- `app/api/events/[id]/route.ts` で `GET/PUT/DELETE` を実装済み
+- `app/new/page.tsx` は `?id=` 指定時に編集モード（`PUT /api/events/[id]`）対応済み
+- `app/event/[id]/page.tsx` から編集 (`/new?id=...`) / 削除 (`DELETE /api/events/[id]`) 導線を接続済み
 - 主要UI画像は `next/image` へ置換済み（`unoptimized` 運用）
 - ローカルDBは `.env` の `DATABASE_URL=file:/tmp/navios-dev.db` で固定
 - Prisma 運用は `npm run prisma:migrate` (`db push`) + `npm run prisma:seed` で確定
 - `GET/POST /api/events` は `zod` バリデーション導入済み
 - `GET /api/geocode` はサーバーキャッシュ(TTL) + レート制限(1req/sec/IP) を実装済み
+- APIレスポンスは `ok/data/error` 形式を共通化（互換キーも返却）
+- `.env.production.example` と `README.md` を運用手順に合わせて整備済み
+- `prisma/schema.supabase.prisma` と Supabase リハーサル用スクリプトを追加済み
+- API・主要画面のテスト（Vitest）を追加済み
 
 ---
 
@@ -57,7 +64,9 @@ navios/
 │   │   └── page.tsx            ← 新規投稿ページ
 │   └── api/
 │       ├── events/
-│       │   └── route.ts        ← GET: 一覧 / POST: 新規作成
+│       │   ├── route.ts        ← GET: 一覧 / POST: 新規作成
+│       │   └── [id]/
+│       │       └── route.ts    ← GET: 詳細 / PUT: 更新 / DELETE: 削除
 │       └── geocode/
 │           └── route.ts        ← Nominatim プロキシ (レート制限対策)
 │
@@ -78,7 +87,8 @@ navios/
 │   ├── event/
 │   │   ├── EventCard.tsx       ← サイドバー用カード (時間軸ボーダー付き)
 │   │   ├── EventPopup.tsx      ← PC用Leafletポップアップ中身
-│   │   └── EventDetail.tsx     ← 詳細ページ本文
+│   │   ├── EventDetail.tsx     ← 詳細ページ本文
+│   │   └── EventActions.tsx    ← 詳細ページの編集/削除導線
 │   │
 │   ├── mobile/
 │   │   ├── BottomSheet.tsx     ← モバイル用ボトムシート
@@ -114,7 +124,12 @@ navios/
 │
 ├── prisma/
 │   ├── schema.prisma           ← DBスキーマ
-│   └── seed.ts                 ← サンプルデータ投入
+│   ├── schema.supabase.prisma  ← Supabase切替リハーサル用スキーマ
+│   └── seed.mjs                ← サンプルデータ投入
+
+├── tests/
+│   ├── api/                    ← Route Handler テスト
+│   └── components/             ← 主要UIコンポーネントテスト
 │
 ├── public/
 │   └── (静的アセット)
@@ -195,8 +210,8 @@ model Event {
   content      String
   latitude     Float
   longitude    Float
-  event_date   DateTime @db.Date
-  expire_date  DateTime @db.Date
+  event_date   DateTime
+  expire_date  DateTime
   event_image  String
   created_at   DateTime @default(now())
   updated_at   DateTime @updatedAt
@@ -295,6 +310,7 @@ interface AppState {
 
 - **実装状況**: Prisma で `Event` 一覧取得後、status / q / 半径条件でフィルター
 - **フォールバック**: DB未接続時は `lib/mock-events.ts` を返却
+- **レスポンス形式**: `ok/data/error` を基本とし、互換のため `events` も返却
 
 ### `POST /api/events`
 
@@ -311,6 +327,22 @@ interface AppState {
 ```
 
 - **実装状況**: バリデーション後に Prisma `event.create` で保存
+- **レスポンス形式**: `ok/data/error` を基本とし、互換のため `event` も返却
+
+### `GET /api/events/[id]`
+
+- **実装状況**: Prisma `findUnique` で単一イベントを返却
+- **レスポンス形式**: `ok/data/error` を基本とし、互換のため `event` も返却
+
+### `PUT /api/events/[id]`
+
+- **実装状況**: `zod` バリデーション後に Prisma `event.update`
+- **レスポンス形式**: `ok/data/error` を基本とし、互換のため `event` も返却
+
+### `DELETE /api/events/[id]`
+
+- **実装状況**: Prisma `event.delete` で削除し、削除IDを返却
+- **レスポンス形式**: `ok/data/error`
 
 ### `GET /event/[id]` (画面)
 
@@ -322,6 +354,7 @@ interface AppState {
 Nominatimへのプロキシ (レート制限: 1req/sec を考慮したサーバーサイドキャッシュ)
 
 - **実装状況**: メモリキャッシュ(TTL 5分) + 1req/sec/IP の制限を追加済み
+- **レスポンス形式**: `ok/data/error` を基本とし、互換のため `results` も返却
 
 ---
 
@@ -352,6 +385,10 @@ Nominatimへのプロキシ (レート制限: 1req/sec を考慮したサーバ�
 ### レスポンシブ制御
 - `useMediaQuery` フックで判定し、PC用/SP用コンポーネントを出し分け
 - Tailwindの `lg:hidden` / `lg:block` でのCSS切替も併用
+
+### テスト
+- `vitest` で API (`/api/events`, `/api/events/[id]`) のテストを追加
+- `@testing-library/react` で `EventDetail` / `EventActions` の表示・操作テストを追加
 
 ### 時間軸ピン
 - `getEventStatus()` の結果に応じてCSSクラスを動的に切り替え

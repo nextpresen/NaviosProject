@@ -1,36 +1,146 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Navios
 
-## Getting Started
+Navios is a Next.js App Router project for location-based event discovery and posting.
 
-First, run the development server:
+## Tech stack
+
+- Next.js 16 (App Router)
+- Tailwind CSS
+- Leaflet + react-leaflet
+- Prisma ORM
+- SQLite (local dev) / PostgreSQL (production)
+
+## Local setup
+
+1. Install dependencies
+
+```bash
+npm install
+```
+
+2. Configure environment
+
+```bash
+cp .env.example .env
+```
+
+Default local DB:
+
+```env
+DATABASE_URL="file:/tmp/navios-dev.db"
+```
+
+3. Prepare database
+
+```bash
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:seed
+```
+
+4. Start dev server
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open:
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+- Main map: `http://localhost:3000/`
+- New post page: `http://localhost:3000/new`
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Useful scripts
 
-## Learn More
+```bash
+npm run dev
+npm run lint
+npm run build
+npm run test
+npm run prisma:generate
+npm run prisma:migrate
+npm run prisma:seed
+npm run prisma:generate:supabase
+npm run prisma:migrate:supabase
+```
 
-To learn more about Next.js, take a look at the following resources:
+## API summary
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### `GET /api/events`
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Query params:
 
-## Deploy on Vercel
+- `status=all|today|upcoming|ended`
+- `q=<text>`
+- `lat=<number>&lng=<number>&radius=<km>`
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### `POST /api/events`
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Request body:
+
+```json
+{
+  "title": "イベント名",
+  "content": "本文",
+  "latitude": 31.573,
+  "longitude": 130.345,
+  "event_date": "2026-03-01",
+  "expire_date": "2026-03-01",
+  "event_image": "https://..."
+}
+```
+
+### `GET /api/events/:id`
+
+- Returns a single event
+
+### `PUT /api/events/:id`
+
+- Updates an event (same payload schema as `POST /api/events`)
+
+### `DELETE /api/events/:id`
+
+- Deletes an event by id
+
+### `GET /api/geocode?q=鹿児島市`
+
+- Proxies Nominatim search
+- Includes server-side cache and simple rate limiting
+
+## API response format
+
+Success:
+
+```json
+{
+  "ok": true,
+  "data": { "...": "..." }
+}
+```
+
+Error:
+
+```json
+{
+  "ok": false,
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid payload",
+    "issues": {}
+  }
+}
+```
+
+Compatibility fields (`events`, `event`, `results`) are also returned where applicable.
+
+## Production notes (Supabase)
+
+1. Copy `.env.production.example` values into production env vars.
+2. Set `DATABASE_URL` and `SUPABASE_DATABASE_URL` to Supabase PostgreSQL connection strings.
+3. Run rehearsal commands:
+
+```bash
+npm run prisma:generate:supabase
+npm run prisma:migrate:supabase
+```
+
+4. For local development, keep `DATABASE_URL=file:/tmp/navios-dev.db` and use normal `prisma:*` scripts.
