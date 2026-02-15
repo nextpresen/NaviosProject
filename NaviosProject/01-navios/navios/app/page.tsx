@@ -216,7 +216,7 @@ export default function HomePage() {
         .marker-pin .pin-avatar { width: 24px; height: 24px; border-radius: 999px; overflow: hidden; transform: rotate(45deg); border: 2px solid #fff; box-shadow: 0 2px 5px rgba(15,23,42,.22); background: #f8fafc; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1; }
         .marker-pin .pin-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; transform: rotate(-45deg); }
         .marker-pin .pin-avatar-fallback { color: #475569; }
-        .marker-pin .pin-label { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; }
+        .marker-pin .pin-label { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; white-space: nowrap; }
         .marker-pin .pin-category { position: absolute; top: -4px; left: -4px; width: 16px; height: 16px; border-radius: 999px; border: 2px solid #fff; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; font-size: 9px; line-height: 1; box-shadow: 0 2px 5px rgba(15,23,42,.25); }
         .marker-pin .pin-pulse { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; border-radius: 50%; animation: markerPulse 1.5s ease-out infinite; }
         .marker-pin .pin-glow { position: absolute; inset: -8px; border-radius: 50%; }
@@ -224,7 +224,7 @@ export default function HomePage() {
         .marker-pin.pin-today { width: 52px; height: 64px; }
         .marker-pin.pin-today .pin-body { width: 46px; height: 46px; }
         .marker-pin.pin-today .pin-body::before { background: linear-gradient(135deg,#ec4899,#be185d); }
-        .marker-pin.pin-today .pin-label { background: linear-gradient(135deg,#f472b6,#db2777); color: #fff; }
+        .marker-pin.pin-today .pin-label { top: -16px; background: linear-gradient(135deg,#f472b6,#db2777); color: #fff; }
         .marker-pin.pin-today .pin-pulse { background: rgba(236,72,153,.45); }
         .marker-pin.pin-today .pin-glow { background: radial-gradient(circle, rgba(236,72,153,.24) 0%, transparent 70%); }
 

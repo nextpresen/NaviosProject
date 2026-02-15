@@ -7,7 +7,7 @@ interface EventMarkerProps {
 export function EventMarker({ status }: EventMarkerProps) {
   const pinClass = status === "today" ? "pin-today" : status === "upcoming" ? "pin-upcoming" : "pin-ended";
   const icon = status === "upcoming" ? "📌" : "📍";
-  const label = status === "today" ? "NOW" : status === "upcoming" ? "SOON" : "END";
+  const label = status === "today" ? "LIVE NOW" : status === "upcoming" ? "SOON" : "END";
 
   return (
     <div className={`marker-pin ${pinClass}`}>

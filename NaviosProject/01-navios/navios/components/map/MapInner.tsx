@@ -14,6 +14,7 @@ interface MapInnerProps {
   selectedEventId: string | null;
   onSelectEvent?: (id: string) => void;
   onReady?: (actions: { resetView: () => void; locateMe: () => void }) => void;
+  onViewportCenterChange?: (latLng: [number, number]) => void;
 }
 
 function FitToEvents({ events }: { events: Event[] }) {
@@ -96,7 +97,41 @@ function MapActionsBridge({
   return null;
 }
 
-export function MapInner({ events, selectedEventId, onSelectEvent, onReady }: MapInnerProps) {
+function ViewportCenterBridge({
+  onChange,
+}: {
+  onChange?: (latLng: [number, number]) => void;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!onChange) return;
+    const center = map.getCenter();
+    onChange([center.lat, center.lng]);
+  }, [map, onChange]);
+
+  useEffect(() => {
+    if (!onChange) return;
+    const onMoveEnd = () => {
+      const center = map.getCenter();
+      onChange([center.lat, center.lng]);
+    };
+    map.on("moveend", onMoveEnd);
+    return () => {
+      map.off("moveend", onMoveEnd);
+    };
+  }, [map, onChange]);
+
+  return null;
+}
+
+export function MapInner({
+  events,
+  selectedEventId,
+  onSelectEvent,
+  onReady,
+  onViewportCenterChange,
+}: MapInnerProps) {
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
 
   const center = useMemo<[number, number]>(() => {
@@ -172,6 +207,7 @@ export function MapInner({ events, selectedEventId, onSelectEvent, onReady }: Ma
       <FitToEvents events={events} />
       <FlyToSelected events={events} selectedEventId={selectedEventId} />
       <MapActionsBridge events={events} onReady={onReady} onLocated={setCurrentLocation} />
+      <ViewportCenterBridge onChange={onViewportCenterChange} />
     </LeafletMapContainer>
   );
 }

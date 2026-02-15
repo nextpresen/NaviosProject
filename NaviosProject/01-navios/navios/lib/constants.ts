@@ -12,8 +12,8 @@ export const STATUS_CONFIG: Record<
   }
 > = {
   today: {
-    label: "いまココ",
-    labelShort: "NOW",
+    label: "LIVE NOW",
+    labelShort: "LIVE NOW",
     pinClass: "pin-today",
     badgeClass: "bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white",
     emoji: "🔥",

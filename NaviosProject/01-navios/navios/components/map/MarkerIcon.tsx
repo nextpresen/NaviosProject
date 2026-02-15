@@ -10,7 +10,7 @@ const CATEGORY_CONFIG: Record<EventCategory, { icon: string; color: string; labe
 };
 
 const PIN_CONFIG = {
-  today: { pinClass: "pin-today", short: "NOW" },
+  today: { pinClass: "pin-today", short: "LIVE NOW" },
   upcoming: { pinClass: "pin-upcoming", short: "SOON" },
   ended: { pinClass: "pin-ended", short: "END" },
 } as const;

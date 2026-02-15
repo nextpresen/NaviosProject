@@ -4,6 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { PostLocationPicker } from "@/components/map/PostLocationPicker";
+import { SearchInput, type SearchResultItem } from "@/components/search/SearchInput";
+import { useGeocode } from "@/hooks/useGeocode";
 import type { Event, EventCategory } from "@/types/event";
 
 type FormState = {
@@ -19,6 +22,70 @@ type FormState = {
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function toCoordinate(value: string, min: number, max: number) {
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  if (n < min || n > max) return null;
+  return n;
+}
+
+function loadImageFromFile(file: File) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const url = URL.createObjectURL(file);
+    const img = new window.Image();
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve(img);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error("画像の読み込みに失敗しました。"));
+    };
+    img.src = url;
+  });
+}
+
+function calcBase64Size(dataUrl: string) {
+  const payload = dataUrl.split(",")[1] ?? "";
+  const padding = payload.endsWith("==") ? 2 : payload.endsWith("=") ? 1 : 0;
+  return Math.floor((payload.length * 3) / 4) - padding;
+}
+
+async function cropAndOptimizeImage(file: File) {
+  const image = await loadImageFromFile(file);
+  const sourceW = image.naturalWidth;
+  const sourceH = image.naturalHeight;
+  const targetRatio = 3 / 2;
+
+  let cropW = sourceW;
+  let cropH = sourceH;
+  let cropX = 0;
+  let cropY = 0;
+
+  if (sourceW / sourceH > targetRatio) {
+    cropW = Math.floor(sourceH * targetRatio);
+    cropX = Math.floor((sourceW - cropW) / 2);
+  } else {
+    cropH = Math.floor(sourceW / targetRatio);
+    cropY = Math.floor((sourceH - cropH) / 2);
+  }
+
+  const canvas = document.createElement("canvas");
+  canvas.width = 1200;
+  canvas.height = 800;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) {
+    throw new Error("画像処理に失敗しました。");
+  }
+
+  ctx.drawImage(image, cropX, cropY, cropW, cropH, 0, 0, canvas.width, canvas.height);
+
+  const supportsWebP = canvas.toDataURL("image/webp").startsWith("data:image/webp");
+  const mime = supportsWebP ? "image/webp" : "image/jpeg";
+  const dataUrl = canvas.toDataURL(mime, 0.8);
+  return { dataUrl, sizeBytes: calcBase64Size(dataUrl) };
 }
 
 export default function NewEventPage() {
@@ -44,6 +111,10 @@ export default function NewEventPage() {
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [readingImage, setReadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [warning, setWarning] = useState<string | null>(null);
+  const [addressQuery, setAddressQuery] = useState("");
+  const [showAddressResults, setShowAddressResults] = useState(false);
+  const { results: geocodeResults, loading: geocodeLoading } = useGeocode(addressQuery);
 
   useEffect(() => {
     let cancelled = false;
@@ -134,6 +205,36 @@ export default function NewEventPage() {
     setForm((prev) => ({ ...prev, [key]: value }));
   };
 
+  const mapLatitude = toCoordinate(form.latitude, -90, 90) ?? 31.57371;
+  const mapLongitude = toCoordinate(form.longitude, -180, 180) ?? 130.345154;
+
+  const handleMapLocationChange = (latitude: number, longitude: number) => {
+    setForm((prev) => ({
+      ...prev,
+      latitude: latitude.toFixed(6),
+      longitude: longitude.toFixed(6),
+    }));
+  };
+
+  const addressItems: SearchResultItem[] = useMemo(
+    () =>
+      geocodeResults.map((item) => ({
+        id: item.id,
+        title: item.displayName.split(",")[0] ?? item.displayName,
+        subtitle: item.displayName,
+        lat: item.lat,
+        lon: item.lon,
+      })),
+    [geocodeResults],
+  );
+
+  const onSelectAddress = (item: SearchResultItem) => {
+    if (typeof item.lat !== "number" || typeof item.lon !== "number") return;
+    handleMapLocationChange(item.lat, item.lon);
+    setAddressQuery(item.subtitle ?? item.title);
+    setShowAddressResults(false);
+  };
+
   const handleImageFileChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -141,29 +242,27 @@ export default function NewEventPage() {
       setError("画像ファイルを選択してください。");
       return;
     }
-    if (file.size > 5 * 1024 * 1024) {
-      setError("画像サイズは5MB以下にしてください。");
+    if (file.size > 15 * 1024 * 1024) {
+      setError("元画像サイズは15MB以下にしてください。");
       return;
     }
 
     setError(null);
+    setWarning(null);
     setReadingImage(true);
-    const reader = new FileReader();
-    reader.onload = () => {
-      const result = typeof reader.result === "string" ? reader.result : null;
-      if (!result) {
-        setError("画像の読み込みに失敗しました。");
+    void cropAndOptimizeImage(file)
+      .then(({ dataUrl, sizeBytes }) => {
+        update("event_image", dataUrl);
+        if (sizeBytes > 2 * 1024 * 1024) {
+          setWarning("最適化後でも2MBを超えています。軽量な画像の利用を推奨します。");
+        }
+      })
+      .catch((err) => {
+        setError(err instanceof Error ? err.message : "画像の処理に失敗しました。");
+      })
+      .finally(() => {
         setReadingImage(false);
-        return;
-      }
-      update("event_image", result);
-      setReadingImage(false);
-    };
-    reader.onerror = () => {
-      setError("画像の読み込みに失敗しました。");
-      setReadingImage(false);
-    };
-    reader.readAsDataURL(file);
+      });
   };
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -305,30 +404,73 @@ export default function NewEventPage() {
             </select>
           </label>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className="block">
-              <span className="text-sm font-semibold text-slate-700">緯度</span>
-              <input
-                required
-                type="number"
-                step="0.000001"
-                value={form.latitude}
-                onChange={(e) => update("latitude", e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+          <div className="block">
+            <span className="text-sm font-semibold text-slate-700">位置選択ミニマップ</span>
+            <p className="mt-1 text-xs text-slate-500">
+              中央固定（推奨）は、地図をスワイプ/ピンチして中心を合わせるだけで座標が確定します。
+            </p>
+            <div className="mt-2">
+              <PostLocationPicker
+                latitude={mapLatitude}
+                longitude={mapLongitude}
+                onChange={handleMapLocationChange}
               />
-            </label>
-            <label className="block">
-              <span className="text-sm font-semibold text-slate-700">経度</span>
-              <input
-                required
-                type="number"
-                step="0.000001"
-                value={form.longitude}
-                onChange={(e) => update("longitude", e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
-              />
-            </label>
+            </div>
           </div>
+
+          <div className="block">
+            <span className="text-sm font-semibold text-slate-700">住所で選択</span>
+            <p className="mt-1 text-xs text-slate-500">
+              住所を入力して候補を選ぶと、ミニマップ位置と座標が自動で更新されます。
+            </p>
+            <div className="mt-2">
+              <SearchInput
+                value={addressQuery}
+                onChange={(value) => {
+                  setAddressQuery(value);
+                  setShowAddressResults(true);
+                }}
+                placeholder="例: 鹿児島県日置市..."
+                results={addressItems}
+                resultsOpen={showAddressResults && addressItems.length > 0}
+                onSelectResult={onSelectAddress}
+                compact
+              />
+              {geocodeLoading ? (
+                <p className="mt-1.5 text-xs text-slate-500">住所を検索中...</p>
+              ) : null}
+            </div>
+          </div>
+
+          <details className="rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+            <summary className="cursor-pointer text-sm font-semibold text-slate-700">
+              緯度・経度を手入力する（上級者向け）
+            </summary>
+            <div className="mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">緯度</span>
+                <input
+                  required
+                  type="number"
+                  step="0.000001"
+                  value={form.latitude}
+                  onChange={(e) => update("latitude", e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">経度</span>
+                <input
+                  required
+                  type="number"
+                  step="0.000001"
+                  value={form.longitude}
+                  onChange={(e) => update("longitude", e.target.value)}
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                />
+              </label>
+            </div>
+          </details>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="block">
@@ -363,7 +505,7 @@ export default function NewEventPage() {
               className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 file:mr-3 file:rounded-lg file:border-0 file:bg-slate-900 file:px-3 file:py-1.5 file:text-xs file:font-semibold file:text-white"
             />
             <p className="mt-1.5 text-xs text-slate-500">
-              JPG / PNG / WebP / GIF（5MBまで）
+              3:2中央トリミング + 1200x800 + 品質0.8（WebP/JPEG）で自動最適化します。
             </p>
           </label>
 
@@ -382,6 +524,9 @@ export default function NewEventPage() {
 
           {error ? (
             <p className="rounded-lg bg-red-50 text-red-700 text-sm px-3 py-2">{error}</p>
+          ) : null}
+          {warning ? (
+            <p className="rounded-lg bg-amber-50 text-amber-800 text-sm px-3 py-2">{warning}</p>
           ) : null}
 
           <div className="flex flex-wrap items-center gap-3">

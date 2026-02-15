@@ -10,7 +10,7 @@ interface FilterTabsProps {
 
 const FILTERS: Array<{ key: FilterType; label: string }> = [
   { key: "all", label: "すべて" },
-  { key: "today", label: "いまココ" },
+  { key: "today", label: "LIVE NOW" },
   { key: "upcoming", label: "開催予定" },
   { key: "ended", label: "終了" },
 ];
