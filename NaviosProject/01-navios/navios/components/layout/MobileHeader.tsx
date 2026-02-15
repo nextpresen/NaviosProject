@@ -24,7 +24,7 @@ export function MobileHeader({
   return (
     <header className="flex lg:hidden flex-shrink-0 items-center gap-2.5 px-3 py-2.5 bg-white/90 backdrop-blur-xl border-b border-slate-200/40 z-[1100] shadow-sm">
       <Link href="/" aria-label="Go to home" className="flex-shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow shadow-brand-500/20">
+        <div className="w-8 h-8 rounded-lg bg-white ring-1 ring-slate-200 flex items-center justify-center shadow-sm">
           <Image src="/navios-logo.svg" alt="Navios logo" width={24} height={24} className="w-6 h-6" />
         </div>
       </Link>

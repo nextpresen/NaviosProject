@@ -1,5 +1,6 @@
 "use client";
 
+import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 
@@ -49,11 +50,8 @@ export function MenuDrawer({
       <div className={`menu-drawer fixed top-0 right-0 bottom-0 z-[3001] w-[300px] max-w-[85vw] bg-white shadow-2xl flex flex-col transition-transform ${isOpen ? "open translate-x-0" : "translate-x-full"}`}>
         <div className="p-5 border-b border-surface-200 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center">
-              <svg className="w-4 h-4 text-white" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a2 2 0 01-2.828 0l-4.243-4.243a8 8 0 1111.314 0z" />
-                <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-              </svg>
+            <div className="w-8 h-8 rounded-lg bg-white ring-1 ring-slate-200 flex items-center justify-center shadow-sm">
+              <Image src="/navios-logo.svg" alt="Navios logo" width={24} height={24} className="w-6 h-6" />
             </div>
             <span className="font-extrabold text-base">Navios</span>
           </div>

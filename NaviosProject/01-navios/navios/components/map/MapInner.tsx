@@ -239,13 +239,14 @@ export function MapInner({
 
       {events.map((event) => {
         const status = getEventStatus(event);
+        const isSelected = event.id === selectedEventId;
         const avatarUrl =
           event.author_avatar_url ??
           (event.author_id
             ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(event.author_id)}`
             : null);
         const icon = L.divIcon({
-          html: buildMarkerHTML(status, event.category, avatarUrl, false),
+          html: buildMarkerHTML(status, event.category, avatarUrl, isSelected),
           className: "",
           ...markerSizeByStatus(status),
         });
@@ -255,7 +256,8 @@ export function MapInner({
             key={event.id}
             position={[event.latitude, event.longitude]}
             icon={icon}
-            zIndexOffset={status === "today" ? 1200 : status === "upcoming" ? 200 : -200}
+            // Selected pin is raised so category icon and avatar badge stay visible over neighbors.
+            zIndexOffset={isSelected ? 1800 : status === "today" ? 1200 : status === "upcoming" ? 200 : -200}
             ref={(instance) => {
               if (instance) {
                 markerRefs.current.set(event.id, instance);

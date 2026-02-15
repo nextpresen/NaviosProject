@@ -224,25 +224,24 @@ export default function HomePage() {
         .post-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15,23,42,.10); }
         .post-card.active { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15), 0 12px 28px rgba(15,23,42,.10); }
 
-        .marker-pin { position: relative; width: 44px; height: 56px; display: flex; align-items: flex-start; justify-content: center; filter: drop-shadow(0 3px 6px rgba(15,23,42,.25)); }
-        .marker-pin .pin-body { width: 38px; height: 38px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #fff; border: 3px solid transparent; display: flex; align-items: center; justify-content: center; position: relative; overflow: visible; }
-        .marker-pin .pin-body::before { content: ""; position: absolute; inset: -3px; border-radius: inherit; z-index: -1; }
-        .marker-pin .pin-avatar { width: 24px; height: 24px; border-radius: 999px; overflow: hidden; transform: rotate(45deg); border: 2px solid #fff; box-shadow: 0 2px 5px rgba(15,23,42,.22); background: #f8fafc; display: inline-flex; align-items: center; justify-content: center; font-size: 11px; line-height: 1; }
-        .marker-pin .pin-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; transform: rotate(-45deg); }
-        .marker-pin .pin-avatar-fallback { color: #475569; }
+        .marker-pin { position: relative; width: 44px; height: 56px; display: flex; align-items: flex-start; justify-content: center; filter: drop-shadow(0 4px 8px rgba(15,23,42,.26)); }
+        .marker-pin .pin-body { width: 38px; height: 38px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: var(--pin-category-color, #2a91ff); border: 2px solid rgba(255,255,255,.95); display: flex; align-items: center; justify-content: center; position: relative; overflow: visible; }
+        .marker-pin .pin-glyph { transform: rotate(45deg); font-size: 16px; line-height: 1; filter: drop-shadow(0 1px 0 rgba(0,0,0,.14)); }
+        .marker-pin .pin-selected-avatar { position: absolute; right: -6px; bottom: -6px; width: 18px; height: 18px; border-radius: 999px; border: 2px solid #fff; background: #f8fafc; overflow: hidden; transform: rotate(45deg); box-shadow: 0 2px 6px rgba(15,23,42,.25); display: inline-flex; align-items: center; justify-content: center; font-size: 10px; line-height: 1; }
+        .marker-pin .pin-selected-avatar img { width: 100%; height: 100%; object-fit: cover; display: block; transform: rotate(-45deg); }
+        .marker-pin .pin-selected-avatar-fallback { color: #475569; }
         .marker-pin .pin-label { position: absolute; top: -10px; left: 50%; transform: translateX(-50%); font-size: 9px; font-weight: 800; padding: 2px 6px; border-radius: 6px; white-space: nowrap; }
-        .marker-pin .pin-category { position: absolute; top: -4px; left: -4px; width: 16px; height: 16px; border-radius: 999px; border: 2px solid #fff; transform: rotate(45deg); display: flex; align-items: center; justify-content: center; font-size: 9px; line-height: 1; box-shadow: 0 2px 5px rgba(15,23,42,.25); }
         .marker-pin .pin-pulse { position: absolute; bottom: -6px; left: 50%; transform: translateX(-50%); width: 14px; height: 14px; border-radius: 50%; animation: markerPulse 1.5s ease-out infinite; }
         .marker-pin .pin-glow { position: absolute; inset: -8px; border-radius: 50%; }
 
         .marker-pin.pin-today { width: 52px; height: 64px; }
         .marker-pin.pin-today .pin-body { width: 46px; height: 46px; }
-        .marker-pin.pin-today .pin-body::before { background: linear-gradient(135deg,#ec4899,#be185d); }
+        .marker-pin.pin-today .pin-glyph { font-size: 19px; }
+        .marker-pin.pin-today .pin-selected-avatar { width: 20px; height: 20px; right: -7px; bottom: -7px; }
         .marker-pin.pin-today .pin-label { top: -16px; background: linear-gradient(135deg,#f472b6,#db2777); color: #fff; }
         .marker-pin.pin-today .pin-pulse { background: rgba(236,72,153,.45); }
         .marker-pin.pin-today .pin-glow { background: radial-gradient(circle, rgba(236,72,153,.24) 0%, transparent 70%); }
 
-        .marker-pin.pin-upcoming .pin-body::before { background: linear-gradient(135deg,#2a91ff,#0f5ce1); }
         .marker-pin.pin-upcoming { opacity: .82; transform: scale(.96); transform-origin: center bottom; }
         .marker-pin.pin-upcoming .pin-label { background: #dbeafe; color: #1d4ed8; }
         .marker-pin.pin-upcoming .pin-pulse { background: rgba(42,145,255,.35); }
@@ -250,7 +249,8 @@ export default function HomePage() {
 
         .marker-pin.pin-ended { opacity: .38; width: 36px; height: 48px; transform: scale(.92); transform-origin: center bottom; filter: grayscale(.25); }
         .marker-pin.pin-ended .pin-body { width: 32px; height: 32px; }
-        .marker-pin.pin-ended .pin-body::before { background: linear-gradient(135deg,#94a3b8,#64748b); }
+        .marker-pin.pin-ended .pin-glyph { font-size: 14px; }
+        .marker-pin.pin-ended .pin-selected-avatar { width: 15px; height: 15px; right: -5px; bottom: -5px; border-width: 1.5px; font-size: 9px; }
         .marker-pin.pin-ended .pin-label { background: #f1f5f9; color: #94a3b8; }
         .marker-pin.pin-ended .pin-pulse { background: rgba(148,163,184,.35); }
         .marker-pin.pin-ended .pin-glow { background: radial-gradient(circle, rgba(148,163,184,.2) 0%, transparent 70%); }

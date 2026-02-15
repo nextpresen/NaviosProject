@@ -28,12 +28,14 @@ export function buildMarkerHTML(
     extraHTML = `<span class="pin-pulse"></span><span class="pin-glow"></span><span class="pin-label">${cfg.short}</span>`;
   }
 
-  const categoryChip = `<span class="pin-category" style="background:${categoryConfig.color}" title="${safeCategoryLabel}">${categoryConfig.icon}</span>`;
-  const avatarHtml = safeAvatar
-    ? `<span class="pin-avatar"><img src="${safeAvatar}" alt="author avatar" /></span>`
-    : `<span class="pin-avatar pin-avatar-fallback">👤</span>`;
+  const categoryGlyph = `<span class="pin-glyph" title="${safeCategoryLabel}">${categoryConfig.icon}</span>`;
+  const selectedAvatar = isSelected
+    ? safeAvatar
+      ? `<span class="pin-selected-avatar"><img src="${safeAvatar}" alt="author avatar" /></span>`
+      : `<span class="pin-selected-avatar pin-selected-avatar-fallback">👤</span>`
+    : "";
 
-  return `<div class="marker-pin ${cfg.pinClass}"><div class="pin-body">${avatarHtml}${categoryChip}</div>${extraHTML}</div>`;
+  return `<div class="marker-pin ${cfg.pinClass}"><div class="pin-body" style="--pin-category-color:${categoryConfig.color};">${categoryGlyph}${selectedAvatar}</div>${extraHTML}</div>`;
 }
 
 export function markerSizeByStatus(status: EventStatus) {

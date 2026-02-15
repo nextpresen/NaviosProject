@@ -160,6 +160,25 @@ return matchFilter;
 | `components/map/MapInner.tsx` | 現在地マーカーCSS化、resetView改善 |
 | `app/page.tsx` | 現在地マーカーCSS追加（`locationPulse`アニメーション） |
 
+### 5.6 イベントピンの「カテゴリ優先」デザインに変更
+- 目的: 地図上でイベント内容を瞬時に判別できるようにする
+- 方針:
+  - ピン本体色をカテゴリ色に統一（カテゴリごとに固定色）
+  - ピン中央をカテゴリ絵文字の大表示に変更
+  - 投稿者アバターは通常表示しない
+  - 投稿者アバターは選択中ピンのみ右下バッジ表示（詳細カード/ポップアップ側で補完）
+- 実装:
+  - `components/map/MarkerIcon.tsx`:
+    - 中央要素を `pin-avatar + pin-category` 構成から `pin-glyph`（カテゴリ絵文字）へ変更
+    - 選択中のみ `pin-selected-avatar` を追加表示
+    - カテゴリ色をCSS変数 `--pin-category-color` で `pin-body` に注入
+  - `components/map/MapInner.tsx`:
+    - `selectedEventId` と一致するピンのみ `isSelected=true` で `buildMarkerHTML` を生成
+    - 選択中ピンの `zIndexOffset` を引き上げ、重なり時の視認性を確保
+  - `app/page.tsx`:
+    - ピンCSSをカテゴリ優先仕様に更新（カテゴリ色の本体、中央絵文字、選択時アバターバッジ）
+    - 既存の「ピン外側カテゴリ丸チップ」を廃止
+
 ## 6. 変更ファイル一覧
 
 | ファイル | 変更種別 |
@@ -170,6 +189,8 @@ return matchFilter;
 | `components/mobile/MenuDrawer.tsx` | 編集（フィルターセクション削除） |
 | `components/mobile/SpotBadge.tsx` | **削除**（MobileFilterBarに統合） |
 | `components/map/MapContainer.tsx` | 編集（SpotBadge参照削除） |
+| `components/map/MarkerIcon.tsx` | 編集（カテゴリ優先ピンHTMLに変更） |
+| `components/map/MapInner.tsx` | 編集（選択中ピンのアバター表示制御） |
 | `app/page.tsx` | 編集（MobileFilterBar配置、props更新、UIポリッシュ） |
 | `components/layout/Header.tsx` | 編集（ガラスモーフィズム追加） |
 | `components/layout/MobileHeader.tsx` | 編集（UIポリッシュ） |
@@ -187,5 +208,4 @@ return matchFilter;
 - API仕様: 変更なし
 - データモデル: 変更なし
 - 認証/認可: 変更なし
-- 地図マーカー/ピン（イベント用）: 変更なし
 - 投稿/編集/削除フロー: 変更なし
