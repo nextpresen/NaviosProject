@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
+    "postinstall": "node scripts/prisma-generate.cjs",
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
@@ -10,6 +11,7 @@
     "test": "bash scripts/run-tests.sh",
     "test:e2e": "node scripts/test-api-flow.mjs",
     "prisma:generate": "prisma generate",
+    "prisma:generate:auto": "node scripts/prisma-generate.cjs",
     "prisma:migrate": "prisma db push --accept-data-loss",
     "prisma:seed": "node prisma/seed.mjs",
     "prisma:generate:supabase": "prisma generate --schema prisma/schema.supabase.prisma",
