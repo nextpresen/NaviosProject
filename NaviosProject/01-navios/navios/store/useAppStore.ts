@@ -18,7 +18,7 @@ interface AppState {
 }
 
 export const useAppStore = create<AppState>((set) => ({
-  filter: "all",
+  filter: "today",
   searchQuery: "",
   selectedEventId: null,
   isMenuOpen: false,

@@ -329,7 +329,7 @@ export default function NewEventPage() {
         <div className="mb-6 flex items-start justify-between gap-3">
           <div>
             <h1 className="text-2xl font-extrabold text-slate-900 mb-1">
-              {isEdit ? "投稿を編集" : "新規投稿"}
+              {isEdit ? "投稿を編集" : "投稿する"}
             </h1>
             <p className="text-sm text-slate-500">
               {isEdit ? "イベント情報を更新します。" : "イベント情報を入力して公開します。"}
@@ -474,7 +474,19 @@ export default function NewEventPage() {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <label className="block">
-              <span className="text-sm font-semibold text-slate-700">開始日</span>
+              <div className="flex items-center justify-between gap-2">
+                <span className="text-sm font-semibold text-slate-700">開始日</span>
+                <button
+                  type="button"
+                  onClick={() => {
+                    update("event_date", today);
+                    update("expire_date", today);
+                  }}
+                  className="inline-flex items-center rounded-lg border border-pink-200 bg-pink-50 px-2.5 py-1 text-[11px] font-bold text-pink-700 hover:bg-pink-100"
+                >
+                  今日開催にする
+                </button>
+              </div>
               <input
                 required
                 type="date"
@@ -494,6 +506,9 @@ export default function NewEventPage() {
               />
             </label>
           </div>
+          <p className="text-xs text-slate-500">
+            今日だけ開催する場合は「今日開催にする」を使うと開始日/終了日が同時に設定されます。
+          </p>
 
           <label className="block">
             <span className="text-sm font-semibold text-slate-700">画像アップロード</span>
@@ -517,7 +532,7 @@ export default function NewEventPage() {
                 width={1200}
                 height={800}
                 unoptimized
-                className="h-44 w-full rounded-lg object-cover"
+                className="h-44 w-full rounded-lg object-contain bg-slate-100"
               />
             </div>
           ) : null}

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { CircleMarker, MapContainer as LeafletMapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import type { Event } from "@/types/event";
@@ -103,23 +103,39 @@ function ViewportCenterBridge({
   onChange?: (latLng: [number, number]) => void;
 }) {
   const map = useMap();
+  const lastSentRef = useRef<[number, number] | null>(null);
 
-  useEffect(() => {
+  const emitIfChanged = () => {
     if (!onChange) return;
     const center = map.getCenter();
-    onChange([center.lat, center.lng]);
+    const next: [number, number] = [center.lat, center.lng];
+    const prev = lastSentRef.current;
+    if (prev) {
+      const latDiff = Math.abs(prev[0] - next[0]);
+      const lngDiff = Math.abs(prev[1] - next[1]);
+      if (latDiff < 0.00005 && lngDiff < 0.00005) {
+        return;
+      }
+    }
+    lastSentRef.current = next;
+    onChange(next);
+  };
+
+  useEffect(() => {
+    emitIfChanged();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, onChange]);
 
   useEffect(() => {
     if (!onChange) return;
     const onMoveEnd = () => {
-      const center = map.getCenter();
-      onChange([center.lat, center.lng]);
+      emitIfChanged();
     };
     map.on("moveend", onMoveEnd);
     return () => {
       map.off("moveend", onMoveEnd);
     };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, onChange]);
 
   return null;
@@ -164,7 +180,7 @@ export function MapInner({
             key={event.id}
             position={[event.latitude, event.longitude]}
             icon={icon}
-            zIndexOffset={status === "today" ? 1000 : status === "upcoming" ? 500 : 0}
+            zIndexOffset={status === "today" ? 1200 : status === "upcoming" ? 200 : -200}
             eventHandlers={{ click: () => onSelectEvent?.(event.id) }}
           >
             <Popup

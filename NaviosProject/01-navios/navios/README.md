@@ -105,7 +105,7 @@ Request body:
 
 Map marker behavior:
 
-- ピン本体は時間軸ステータス（LIVE NOW/SOON/END）
+- ピン本体は時間軸ステータス（LIVE NOW/SOON/FINISHED）
 - カテゴリはピン上のカテゴリチップ（絵文字+色）
 - アニメーションは選択中ピンのみ
 

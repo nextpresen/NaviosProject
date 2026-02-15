@@ -80,10 +80,10 @@ export function MenuDrawer({
           <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">フィルター</p>
           <div className="space-y-1">
             {[
-              ["all", "🗺", "すべて", counts.all],
+              ["all", "🗺", "ALL", counts.all],
               ["today", "🔥", "LIVE NOW", counts.today],
-              ["upcoming", "📅", "開催予定", counts.upcoming],
-              ["ended", "🕐", "終了済み", counts.ended],
+              ["upcoming", "⭐", "SOON", counts.upcoming],
+              ["ended", "🕐", "FINISHED", counts.ended],
             ].map(([key, icon, label, count]) => {
               const filter = key as FilterType;
               const active = currentFilter === filter;

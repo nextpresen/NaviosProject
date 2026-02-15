@@ -147,7 +147,7 @@ export default function HomePage() {
                 width={1200}
                 height={768}
                 unoptimized
-                className="w-full h-40 object-cover"
+                className="w-full h-40 object-contain bg-slate-100"
               />
               <StatusBadge
                 status={getEventStatus(selectedEvent)}
@@ -229,11 +229,12 @@ export default function HomePage() {
         .marker-pin.pin-today .pin-glow { background: radial-gradient(circle, rgba(236,72,153,.24) 0%, transparent 70%); }
 
         .marker-pin.pin-upcoming .pin-body::before { background: linear-gradient(135deg,#2a91ff,#0f5ce1); }
+        .marker-pin.pin-upcoming { opacity: .82; transform: scale(.96); transform-origin: center bottom; }
         .marker-pin.pin-upcoming .pin-label { background: #dbeafe; color: #1d4ed8; }
         .marker-pin.pin-upcoming .pin-pulse { background: rgba(42,145,255,.35); }
         .marker-pin.pin-upcoming .pin-glow { background: radial-gradient(circle, rgba(42,145,255,.2) 0%, transparent 70%); }
 
-        .marker-pin.pin-ended { opacity: .55; width: 36px; height: 48px; }
+        .marker-pin.pin-ended { opacity: .38; width: 36px; height: 48px; transform: scale(.92); transform-origin: center bottom; filter: grayscale(.25); }
         .marker-pin.pin-ended .pin-body { width: 32px; height: 32px; }
         .marker-pin.pin-ended .pin-body::before { background: linear-gradient(135deg,#94a3b8,#64748b); }
         .marker-pin.pin-ended .pin-label { background: #f1f5f9; color: #94a3b8; }

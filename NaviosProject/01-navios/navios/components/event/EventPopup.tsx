@@ -24,7 +24,7 @@ export function EventPopup({ id, title, content, imageUrl, dateText, daysText, s
           width={560}
           height={300}
           unoptimized
-          className="w-full h-[150px] object-cover"
+          className="w-full h-[150px] object-contain bg-slate-100"
         />
         <StatusBadge status={status} className="absolute top-[10px] left-[10px]" />
       </div>

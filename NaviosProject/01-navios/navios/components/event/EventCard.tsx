@@ -32,13 +32,18 @@ export function EventCard({ event, active = false, onClick }: EventCardProps) {
   const textColor =
     event.status === "today" ? "text-pink-600" : event.status === "upcoming" ? "text-blue-600" : "text-slate-400";
 
+  const densityClass =
+    event.status === "today"
+      ? "shadow-[0_6px_22px_rgba(236,72,153,0.12)]"
+      : event.status === "upcoming"
+        ? "opacity-[0.92]"
+        : "opacity-[0.62] saturate-75";
+
   return (
     <article
       onClick={() => onClick?.(event.id)}
       data-id={event.id}
-      className={`post-card bg-white rounded-2xl border border-surface-200 ${borderAccent} overflow-hidden cursor-pointer ${
-        event.status === "ended" ? "opacity-60" : ""
-      } ${active ? "active" : ""}`}
+      className={`post-card bg-white rounded-2xl border border-surface-200 ${borderAccent} ${densityClass} overflow-hidden cursor-pointer ${active ? "active" : ""}`}
     >
       <div className="relative">
         <Image
@@ -47,7 +52,7 @@ export function EventCard({ event, active = false, onClick }: EventCardProps) {
           width={800}
           height={320}
           unoptimized
-          className="w-full h-32 object-cover"
+          className="w-full h-32 object-contain bg-slate-100"
         />
         <StatusBadge status={event.status} className="absolute top-2 left-2 backdrop-blur-sm" />
         <div className="absolute top-2 right-2 bg-white/85 backdrop-blur-xl rounded-lg px-2 py-0.5">

@@ -23,7 +23,7 @@ export function EventDetail({ id, title, content, imageUrl, dateText, daysText, 
           width={1200}
           height={640}
           unoptimized
-          className="w-full h-64 object-cover"
+          className="w-full h-64 object-contain bg-slate-100"
         />
         <StatusBadge status={status} className="absolute top-3 left-3 backdrop-blur-sm shadow" />
         <div className="absolute top-3 right-3 bg-white/85 backdrop-blur-xl rounded-lg px-2.5 py-1 shadow">
