@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { CircleMarker, MapContainer as LeafletMapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
-import MarkerClusterGroup from "react-leaflet-cluster";
 import type { Event } from "@/types/event";
 import { TILE_ATTRIBUTION, TILE_URL } from "@/lib/constants";
 import { daysUntilText, formatEventSchedule, getEventStatus } from "@/lib/event-status";
@@ -13,6 +12,7 @@ import { buildMarkerHTML, markerSizeByStatus } from "./MarkerIcon";
 interface MapInnerProps {
   events: Event[];
   selectedEventId: string | null;
+  enableMarkerPopup?: boolean;
   onSelectEvent?: (id: string) => void;
   onReady?: (actions: { resetView: () => void; locateMe: () => void }) => void;
   onViewportCenterChange?: (latLng: [number, number]) => void;
@@ -206,6 +206,7 @@ function ViewportCenterBridge({
 export function MapInner({
   events,
   selectedEventId,
+  enableMarkerPopup = true,
   onSelectEvent,
   onReady,
   onViewportCenterChange,
@@ -220,90 +221,54 @@ export function MapInner({
     return [31.57371, 130.345154];
   }, [events]);
 
-  const clusterIcon = useMemo(
-    () => (cluster: { getChildCount: () => number }) => {
-      const count = cluster.getChildCount();
-      const size = count >= 100 ? 52 : count >= 20 ? 46 : 40;
-      const fontSize = count >= 100 ? "13px" : "12px";
-      const html = `
-        <div style="
-          width:${size}px;
-          height:${size}px;
-          border-radius:9999px;
-          display:flex;
-          align-items:center;
-          justify-content:center;
-          color:#ffffff;
-          font-weight:800;
-          font-size:${fontSize};
-          background:linear-gradient(135deg,#ec4899,#be185d);
-          border:2px solid rgba(255,255,255,.88);
-          box-shadow:0 8px 20px rgba(190,24,93,.35);
-        ">${count}</div>
-      `;
-
-      return L.divIcon({
-        html,
-        className: "navios-cluster-icon",
-        iconSize: [size, size],
-      });
-    },
-    [],
-  );
-
   useEffect(() => {
+    if (!enableMarkerPopup) return;
     if (!selectedEventId) return;
     const marker = markerRefs.current.get(selectedEventId);
     if (!marker) return;
     marker.openPopup();
-  }, [selectedEventId]);
+  }, [enableMarkerPopup, selectedEventId]);
 
   return (
     <LeafletMapContainer center={center} zoom={14} zoomControl={false} className="w-full h-full">
       <TileLayer url={TILE_URL} maxZoom={20} attribution={TILE_ATTRIBUTION} />
 
-      <MarkerClusterGroup
-        chunkedLoading
-        spiderfyOnMaxZoom
-        showCoverageOnHover={false}
-        maxClusterRadius={45}
-        disableClusteringAtZoom={17}
-        iconCreateFunction={clusterIcon}
-      >
-        {events.map((event) => {
-          const status = getEventStatus(event);
-          const avatarUrl =
-            event.author_avatar_url ??
-            (event.author_id
-              ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(event.author_id)}`
-              : null);
-          const icon = L.divIcon({
-            html: buildMarkerHTML(status, event.category, avatarUrl, false),
-            className: "",
-            ...markerSizeByStatus(status),
-          });
+      {events.map((event) => {
+        const status = getEventStatus(event);
+        const avatarUrl =
+          event.author_avatar_url ??
+          (event.author_id
+            ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(event.author_id)}`
+            : null);
+        const icon = L.divIcon({
+          html: buildMarkerHTML(status, event.category, avatarUrl, false),
+          className: "",
+          ...markerSizeByStatus(status),
+        });
 
-          return (
-            <Marker
-              key={event.id}
-              position={[event.latitude, event.longitude]}
-              icon={icon}
-              zIndexOffset={status === "today" ? 1200 : status === "upcoming" ? 200 : -200}
-              ref={(instance) => {
-                if (instance) {
-                  markerRefs.current.set(event.id, instance);
-                } else {
-                  markerRefs.current.delete(event.id);
-                }
-              }}
-              eventHandlers={{
-                click: (clickEvent) => {
-                  onSelectEvent?.(event.id);
-                  const marker = clickEvent.target as L.Marker;
-                  requestAnimationFrame(() => marker.openPopup());
-                },
-              }}
-            >
+        return (
+          <Marker
+            key={event.id}
+            position={[event.latitude, event.longitude]}
+            icon={icon}
+            zIndexOffset={status === "today" ? 1200 : status === "upcoming" ? 200 : -200}
+            ref={(instance) => {
+              if (instance) {
+                markerRefs.current.set(event.id, instance);
+              } else {
+                markerRefs.current.delete(event.id);
+              }
+            }}
+            eventHandlers={{
+              click: (clickEvent) => {
+                onSelectEvent?.(event.id);
+                if (!enableMarkerPopup) return;
+                const marker = clickEvent.target as L.Marker;
+                requestAnimationFrame(() => marker.openPopup());
+              },
+            }}
+          >
+            {enableMarkerPopup ? (
               <Popup
                 maxWidth={380}
                 minWidth={240}
@@ -322,10 +287,10 @@ export function MapInner({
                   status={status}
                 />
               </Popup>
-            </Marker>
-          );
-        })}
-      </MarkerClusterGroup>
+            ) : null}
+          </Marker>
+        );
+      })}
 
       {currentLocation ? (
         <CircleMarker
@@ -346,7 +311,7 @@ export function MapInner({
       <FlyToSelected events={events} selectedEventId={selectedEventId} />
       <MapActionsBridge events={events} onReady={onReady} onLocated={setCurrentLocation} />
       <ViewportCenterBridge onChange={onViewportCenterChange} />
-      <PopupAutoFit />
+      {enableMarkerPopup ? <PopupAutoFit /> : null}
     </LeafletMapContainer>
   );
 }

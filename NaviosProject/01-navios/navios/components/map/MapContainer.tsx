@@ -19,6 +19,7 @@ interface MapContainerProps {
     upcoming: number;
   };
   mobileLiveNowCount: number;
+  enableMarkerPopup?: boolean;
   events: Event[];
   selectedEventId: string | null;
   onSelectEvent?: (id: string) => void;
@@ -28,6 +29,7 @@ export function MapContainer({
   areaName = "日置市周辺",
   stats,
   mobileLiveNowCount,
+  enableMarkerPopup = true,
   events,
   selectedEventId,
   onSelectEvent,
@@ -84,6 +86,7 @@ export function MapContainer({
         <MapInner
           events={events}
           selectedEventId={selectedEventId}
+          enableMarkerPopup={enableMarkerPopup}
           onSelectEvent={onSelectEvent}
           onReady={handleReady}
           onViewportCenterChange={handleViewportCenterChange}

@@ -16,7 +16,7 @@ export function EventPopup({ id, title, content, imageUrl, dateText, daysText, s
   const textColor = status === "today" ? "text-pink-600" : status === "upcoming" ? "text-blue-600" : "text-slate-400";
 
   return (
-    <div className="max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white" style={{ width: "min(350px, calc(100vw - 24px))", height: "96px" }}>
+    <div className="max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white" style={{ width: "min(350px, calc(100vw - 24px))", minHeight: "96px" }}>
       <div className="flex h-full">
         <div className="relative w-[92px] flex-shrink-0 bg-slate-100">
           <Image
@@ -38,12 +38,12 @@ export function EventPopup({ id, title, content, imageUrl, dateText, daysText, s
           </div>
 
           <div className="flex items-center justify-between gap-2">
-            <p className="truncate text-[10px] text-slate-500">{content}</p>
+            <p className="line-clamp-1 text-[10px] text-slate-500">{content}</p>
             <Link
               href={`/event/${id}`}
-              className="inline-flex flex-shrink-0 items-center rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-bold text-slate-900 hover:bg-slate-50"
+              className="inline-flex flex-shrink-0 items-center whitespace-nowrap rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-bold text-slate-900 hover:bg-slate-50"
             >
-              詳細
+              詳細を見る
             </Link>
           </div>
         </div>

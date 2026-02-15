@@ -83,7 +83,11 @@ export default function HomePage() {
 
   const handleSelectEventFromMap = (id: string) => {
     selectEvent(id);
-    setPcCardPopupOpen(false);
+    if (isMobile) {
+      setPcCardPopupOpen(false);
+      return;
+    }
+    setPcCardPopupOpen(true);
   };
 
   const handleSelectEventFromSidebar = (id: string) => {
@@ -131,6 +135,7 @@ export default function HomePage() {
             upcoming: counts.upcoming,
           }}
           mobileLiveNowCount={counts.today}
+          enableMarkerPopup={isMobile}
           events={filteredEvents}
           selectedEventId={selectedEventId}
           onSelectEvent={handleSelectEventFromMap}
