@@ -18,8 +18,26 @@
 - `app/new/page.tsx` は画像アップロード入力に対応（`event_image` は data URL で送信）
 - `app/new/page.tsx` はカテゴリ選択に対応（祭り / グルメ / 自然 / 文化 / その他）
 - `app/new/page.tsx` は未ログイン時にフォーム非表示とし「ログインが必要です」メッセージを表示
-- `app/me/page.tsx` を追加し、ログインインジケーター画面（ユーザーアイコン + ユーザー名編集）を実装
+- モバイルのイベント選択時 BottomSheet は一旦非表示（UI調整のため停止）
+- `app/new/page.tsx` に場所選択ミニマップを追加し、地図操作と緯度経度入力を双方向同期
+- `app/new/page.tsx` に住所候補検索（geocode）を追加し、候補選択で地図/座標を自動反映
+- 投稿画像はフロントで 3:2 中央トリミング + 1200x800 最適化 + 品質0.8 圧縮（2MB超過時は警告表示）
+- 投稿フォームに位置選択ミニマップを追加（中央固定ピン推奨 + タップ配置 + ピンドラッグ対応）
+- 投稿フォームに住所候補検索を追加し、候補選択でミニマップ/緯度経度を自動反映。緯度経度手入力は上級者向け折りたたみへ整理
+- `app/me/page.tsx` を追加し、ログインインジケーター画面（ユーザーアイコン + ユーザー名編集 + アイコン画像更新）を実装
+- `/api/auth/profile` で `avatar_url` を保存し、投稿作成時の `author_avatar_url` に反映
+- `/api/auth/profile` 更新時に既存投稿の `author_avatar_url` も同期更新し、ピン画像を即時反映
 - マップピンは「中央:投稿者アイコン + 左:カテゴリチップ」の複合表示に対応（白背景+グラデ枠、アニメーションは選択中のみ）
+- `LIVE NOW` 配色をピンクグラデーション系へ統一（LIVE NOWピン/バッジ/統計表示）
+- 初期フィルタを `LIVE NOW`（today）に変更し、トップ初期表示で当日イベントを優先
+- サイドバーの `all` 表示では `SOON` / `FINISHED` を折りたたみ表示にして情報密度を抑制
+- 一覧カード/地図ピンの非`LIVE NOW`要素は透明度を下げ、視線が当日投稿へ集まるように調整
+- 投稿フォームの日付入力に「今日開催にする」クイック設定を追加（開始日/終了日を同時に当日へ）
+- `SOON` のステータスアイコンは日付アイコンと混同しないよう `⭐` へ変更
+- マップ中心座標の通知は同値抑制を追加し、`Maximum update depth exceeded` ループを解消
+- MapStats の表示ラベルを `ALL / LIVE NOW / SOON` に統一
+- PCフィルタータブの `LIVE NOW` アクティブ状態をピンクグラデーション表示に変更
+- 画像表示は見切れ防止のため主要画面で `object-contain` + 背景色表示へ調整
 - ヘッダー左上ロゴを `public/navios-logo.svg` に差し替え済み（PC/モバイル共通）
 - `app/event/[id]/page.tsx` は Prisma からイベント詳細表示（DB未接続時はモック）
 - `app/api/events/[id]/route.ts` で `GET/PUT/DELETE` を実装済み
@@ -30,12 +48,15 @@
 - Auth.js (Credentials) を導入し、ログインUIは `signIn("credentials")` に移行済み
 - API認証は Auth.js セッション + 旧Cookie の併用で段階移行中
 - `author_id = session.user.id` で統一
+- `/signup` + `POST /api/auth/register` による新規ユーザー登録を実装済み
+- `UserAccount` モデル追加（email unique + password_hash + role）
 - 非権限時のUI/APIメッセージを日本語で統一済み（未ログイン/権限不足）
 - 主要UI画像は `next/image` へ置換済み（`unoptimized` 運用）
 - ローカルDBは `.env` の `DATABASE_URL=file:/tmp/navios-dev.db` で固定
 - Prisma 運用は `npm run prisma:migrate` (`db push`) + `npm run prisma:seed` で確定
 - `GET/POST /api/events` は `zod` バリデーション導入済み
 - `GET /api/geocode` はサーバーキャッシュ(TTL) + レート制限(1req/sec/IP) を実装済み
+- 地図ヘッダーの「表示エリア」は reverse geocode で動的更新（市区町村優先→都道府県フォールバック→◯◯周辺）
 - APIレスポンスは `ok/data/error` 形式を共通化（互換キーも返却）
 - `.env.production.example` と `README.md` を運用手順に合わせて整備済み
 - `prisma/schema.supabase.prisma` と Supabase リハーサル用スクリプトを追加済み
@@ -77,12 +98,15 @@ navios/
 │   │   └── [id]/
 │   │       └── page.tsx        ← イベント詳細ページ
 │   ├── new/
-│   │   └── page.tsx            ← 新規投稿ページ
+│   │   └── page.tsx            ← 投稿するページ
+│   ├── signup/
+│   │   └── page.tsx            ← 新規ユーザー登録ページ
 │   ├── me/
 │   │   └── page.tsx            ← ログインインジケーター画面
 │   └── api/
 │       ├── auth/
 │       │   ├── [...nextauth]/route.ts ← Auth.js handler
+│       │   ├── register/route.ts ← POST: 新規登録
 │       │   ├── login/route.ts ← POST: ログイン
 │       │   ├── logout/route.ts← POST: ログアウト
 │       │   ├── session/route.ts← GET: セッション確認
@@ -123,7 +147,7 @@ navios/
 │   │   └── SearchResults.tsx   ← Nominatimサジェスト表示
 │   │
 │   ├── ui/
-│   │   ├── StatusBadge.tsx     ← いまココ / 開催予定 / 終了バッジ
+│   │   ├── StatusBadge.tsx     ← LIVE NOW / SOON / FINISHED バッジ
 │   │   ├── GlassCard.tsx       ← backdrop-blur glassmorphismカード
 │   │   └── FilterTabs.tsx      ← all / today / upcoming / ended タブ
 │   └── providers/
@@ -212,7 +236,7 @@ navios/
 | `.menu-drawer` | `MenuDrawer.tsx` | Client | フィルター+投稿/ログイン導線 |
 | `.search-results` | `SearchResults.tsx` | Client | Nominatimサジェスト |
 | `.post-card` | `EventCard.tsx` | Client | 時間軸ボーダー+バッジ |
-| `.status-badge` | `StatusBadge.tsx` | Server | いまココ/開催予定/終了の表示分け |
+| `.status-badge` | `StatusBadge.tsx` | Server | LIVE NOW/SOON/FINISHED の表示分け |
 | 詳細画面の編集/削除導線 | `EventActions.tsx` | Client | owner 判定で表示制御 |
 
 ### 3-3. Leaflet の SSR 対策
@@ -248,6 +272,23 @@ model Event {
   event_image       String
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
+}
+
+model UserProfile {
+  user_id    String   @id
+  username   String
+  avatar_url String?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+}
+
+model UserAccount {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String
+  role          String   @default("user")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
 }
 ```
 
@@ -401,6 +442,12 @@ Nominatimへのプロキシ (レート制限: 1req/sec を考慮したサーバ�
 
 - **実装状況**: 互換用として email/password でログインし、署名付きCookieを発行（テスト/段階移行用）
 
+### `POST /api/auth/register`
+
+- **実装状況**: email/password(+任意username)で新規登録
+- **永続化**: `UserAccount` に password hash を保存し、`UserProfile` に username を保存
+- **重複制御**: 既存メールは `409 CONFLICT`
+
 ### `GET/POST /api/auth/[...nextauth]`
 
 - **実装状況**: Auth.js Credentials Provider で本セッション運用
@@ -416,8 +463,8 @@ Nominatimへのプロキシ (レート制限: 1req/sec を考慮したサーバ�
 
 ### `GET/PATCH /api/auth/profile`
 
-- **実装状況**: ログインユーザーのプロフィール（表示名）を取得/更新（Auth.js + 互換Cookie両対応）
-- **更新対象**: `username` のみ（email はログインIDとして固定）
+- **実装状況**: ログインユーザーのプロフィール（表示名 + アイコン）を取得/更新（Auth.js + 互換Cookie両対応）
+- **更新対象**: `username`, `avatar_url`（email はログインIDとして固定）
 
 ---
 
@@ -459,7 +506,7 @@ Nominatimへのプロキシ (レート制限: 1req/sec を考慮したサーバ�
 
 ### 時間軸ピン
 - `getEventStatus()` の結果に応じてCSSクラスを動的に切り替え
-- `zIndexOffset` で いまココ イベントを最前面に表示（モックアップと同じ）
+- `zIndexOffset` で LIVE NOW イベントを最前面に表示（モックアップと同じ）
 - 中央は投稿者アイコン、左上はカテゴリチップ（絵文字 + 色）で表示
 - 大ピンは白背景 + ステータスごとのグラデーション枠
 - ピンのアニメーションは選択中イベントに限定して表示
