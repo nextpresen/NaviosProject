@@ -28,6 +28,7 @@ Default local DB:
 
 ```env
 DATABASE_URL="file:/tmp/navios-dev.db"
+NEXT_PUBLIC_SITE_URL="http://localhost:3000"
 AUTH_SECRET="change-this-secret"
 NEXTAUTH_SECRET="change-this-secret"
 AUTH_USERS_JSON='[{"id":"demo-user","email":"user@navios.local","password":"user1234","role":"user"},{"id":"demo-admin","email":"admin@navios.local","password":"admin1234","role":"admin"}]'
@@ -202,6 +203,13 @@ Latest rehearsal result (2026-02-15):
 - `Supabase CRUD rehearsal passed`
 - `createdId: cmlmn2xfm0000bt7qkz7dkfp1`
 - `updatedTitle: Supabase rehearsal 1771093061805 updated`
+
+## SEO / Share settings
+
+- Set `NEXT_PUBLIC_SITE_URL` to your canonical domain (example: `https://navios.life`).
+- `robots.txt` is generated from `app/robots.ts`.
+- `sitemap.xml` is generated from `app/sitemap.ts` and includes `/event/:id` pages.
+- Event detail pages include JSON-LD (`schema.org/Event`) for rich result indexing.
 
 ## Test strategy
 
