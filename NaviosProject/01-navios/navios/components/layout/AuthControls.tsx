@@ -86,12 +86,20 @@ export function AuthControls() {
           </Link>
         </>
       ) : (
-        <Link
-          href="/login"
-          className="text-xs font-semibold rounded-lg border border-slate-300 px-2.5 py-1.5"
-        >
-          ログイン
-        </Link>
+        <>
+          <Link
+            href="/signup"
+            className="text-xs font-semibold rounded-lg bg-slate-900 text-white px-2.5 py-1.5"
+          >
+            新規登録
+          </Link>
+          <Link
+            href="/login"
+            className="text-xs font-semibold rounded-lg border border-slate-300 px-2.5 py-1.5"
+          >
+            ログイン
+          </Link>
+        </>
       )}
     </div>
   );

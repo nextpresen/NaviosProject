@@ -52,6 +52,7 @@ Open:
 - Main map: `http://localhost:3000/`
 - New post page: `http://localhost:3000/new`
 - Login page: `http://localhost:3000/login`
+- Signup page: `http://localhost:3000/signup`
 - User indicator page: `http://localhost:3000/me`
   - Username can be edited on this page
 
@@ -129,6 +130,7 @@ UI behavior:
 ### Auth APIs
 
 - `GET/POST /api/auth/[...nextauth]` (Auth.js)
+- `POST /api/auth/register`
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/session`
@@ -138,6 +140,7 @@ UI behavior:
 Notes:
 
 - Login UI uses Auth.js Credentials (`signIn("credentials")`).
+- Signup UI uses `/api/auth/register` then `signIn("credentials")`.
 - Legacy `/api/auth/login` cookie is kept for test/backward compatibility.
 
 ### `GET /api/geocode?q=鹿児島市`

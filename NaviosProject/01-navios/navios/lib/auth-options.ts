@@ -1,6 +1,8 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
 import { getUsername } from "@/lib/user-profile";
+import { prisma } from "@/lib/prisma";
 
 type LegacyUser = {
   id: string;
@@ -43,6 +45,28 @@ export const authOptions: NextAuthOptions = {
         const email = String(credentials?.email ?? "").trim().toLowerCase();
         const password = String(credentials?.password ?? "");
         if (!email || !password) return null;
+
+        try {
+          const account = await prisma.userAccount.findUnique({
+            where: { email },
+            select: { id: true, email: true, password_hash: true, role: true },
+          });
+          if (account) {
+            const matched = await bcrypt.compare(password, account.password_hash);
+            if (matched) {
+              const username = await getUsername(account.id, account.email);
+              return {
+                id: account.id,
+                email: account.email,
+                name: username,
+                role: account.role,
+              };
+            }
+            return null;
+          }
+        } catch {
+          // DB未初期化時はlegacyユーザーへフォールバック
+        }
 
         const found = getLegacyUsers().find(
           (user) => user.email.toLowerCase() === email && user.password === password,

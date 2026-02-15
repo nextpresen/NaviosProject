@@ -29,3 +29,12 @@ model UserProfile {
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
+
+model UserAccount {
+  id            String   @id @default(cuid())
+  email         String   @unique
+  password_hash String
+  role          String   @default("user")
+  created_at    DateTime @default(now())
+  updated_at    DateTime @updatedAt
+}
