@@ -7,18 +7,30 @@
 > **目的**: HTMLモックアップをNext.js (App Router) でプロダクション実装するための設計ドキュメント
 
 ---
-## 0. 現在の実装状態 (2026-02-14)
+## 0. 現在の実装状態 (2026-02-15)
 
 - `MapContainer -> MapInner` の `dynamic import (ssr:false)` 実装済み
-- `Leaflet + react-leaflet` でマーカー/ポップアップ/スタイル切替を実装済み
+- `Leaflet + react-leaflet` でマーカー/ポップアップを実装済み（タイルは standard 固定）
 - `app/page.tsx` はクライアントで `/api/events` をフェッチして描画
 - `app/api/events/route.ts` は Prisma CRUD を実装（DB未接続時はモック返却）
 - `store/useAppStore.ts` + `hooks/useEvents.ts` + `lib/event-status.ts` にロジック統一済み
 - `app/new/page.tsx` は投稿フォームから `POST /api/events` 接続済み
+- `app/new/page.tsx` は画像アップロード入力に対応（`event_image` は data URL で送信）
+- `app/new/page.tsx` はカテゴリ選択に対応（祭り / グルメ / 自然 / 文化 / その他）
+- `app/new/page.tsx` は未ログイン時にフォーム非表示とし「ログインが必要です」メッセージを表示
+- `app/me/page.tsx` を追加し、ログインインジケーター画面（ユーザーアイコン + ユーザー名編集）を実装
+- マップピンは「中央:投稿者アイコン + 左:カテゴリチップ」の複合表示に対応（白背景+グラデ枠、アニメーションは選択中のみ）
+- ヘッダー左上ロゴを `public/navios-logo.svg` に差し替え済み（PC/モバイル共通）
 - `app/event/[id]/page.tsx` は Prisma からイベント詳細表示（DB未接続時はモック）
 - `app/api/events/[id]/route.ts` で `GET/PUT/DELETE` を実装済み
 - `app/new/page.tsx` は `?id=` 指定時に編集モード（`PUT /api/events/[id]`）対応済み
 - `app/event/[id]/page.tsx` から編集 (`/new?id=...`) / 削除 (`DELETE /api/events/[id]`) 導線を接続済み
+- 詳細画面の編集/削除導線は owner のみ表示（非ownerは案内文表示）
+- `Event.author_id` を追加し、`PUT/DELETE /api/events/[id]` に owner/admin 認可を導入済み
+- Auth.js (Credentials) を導入し、ログインUIは `signIn("credentials")` に移行済み
+- API認証は Auth.js セッション + 旧Cookie の併用で段階移行中
+- `author_id = session.user.id` で統一
+- 非権限時のUI/APIメッセージを日本語で統一済み（未ログイン/権限不足）
 - 主要UI画像は `next/image` へ置換済み（`unoptimized` 運用）
 - ローカルDBは `.env` の `DATABASE_URL=file:/tmp/navios-dev.db` で固定
 - Prisma 運用は `npm run prisma:migrate` (`db push`) + `npm run prisma:seed` で確定
@@ -27,7 +39,10 @@
 - APIレスポンスは `ok/data/error` 形式を共通化（互換キーも返却）
 - `.env.production.example` と `README.md` を運用手順に合わせて整備済み
 - `prisma/schema.supabase.prisma` と Supabase リハーサル用スクリプトを追加済み
-- API・主要画面のテスト（Vitest）を追加済み
+- 依存追加なしの E2E相当テスト（`npm run test`）を追加済み
+- Supabase リハーサル成功済み（`Supabase CRUD rehearsal passed`）
+- Supabase リハーサル再成功（2026-02-15, `createdId: cmlmn2xfm0000bt7qkz7dkfp1`）
+- 管理画面（`/admin`）は Phase 2 実装予定
 
 ---
 
@@ -41,8 +56,9 @@
 | タイルサーバー | **CARTO / OpenStreetMap** | 無料・商用利用可 |
 | 状態管理 | **Zustand** | 軽量、イベントフィルター・マップ状態管理用 |
 | データ取得 | **Client Fetch + Route Handlers + Prisma** | `GET/POST /api/events` で Event CRUD |
+| 認証 | **Auth.js (Credentials)** | セッション管理を標準化し、owner/admin認可へ連携 |
 | DB | **SQLite(ローカル) / PostgreSQL(本番) + Prisma ORM (v6)** | 開発はローカル固定、本番はSupabaseへ移行可能 |
-| 画像 | **Supabase Storage** or **Cloudinary** | event_image URL管理 |
+| 画像 | **一時: data URLアップロード / 将来: Supabase Storage** | 現状はフォームアップロードを `event_image` に保持 |
 | ジオコーディング | **Nominatim API** (OSM) | 地名検索 |
 | フォント | **Inter** (next/font) | モックアップと同一 |
 
@@ -62,7 +78,15 @@ navios/
 │   │       └── page.tsx        ← イベント詳細ページ
 │   ├── new/
 │   │   └── page.tsx            ← 新規投稿ページ
+│   ├── me/
+│   │   └── page.tsx            ← ログインインジケーター画面
 │   └── api/
+│       ├── auth/
+│       │   ├── [...nextauth]/route.ts ← Auth.js handler
+│       │   ├── login/route.ts ← POST: ログイン
+│       │   ├── logout/route.ts← POST: ログアウト
+│       │   ├── session/route.ts← GET: セッション確認
+│       │   └── profile/route.ts← GET/PATCH: ユーザー名取得/更新
 │       ├── events/
 │       │   ├── route.ts        ← GET: 一覧 / POST: 新規作成
 │       │   └── [id]/
@@ -80,7 +104,6 @@ navios/
 │   │   ├── MapContainer.tsx    ← Leafletマップ本体 (dynamic import, ssr:false)
 │   │   ├── EventMarker.tsx     ← 時間軸ピン (today / upcoming / ended)
 │   │   ├── MarkerIcon.tsx      ← L.divIcon生成ロジック
-│   │   ├── MapStyleToggle.tsx  ← タイルレイヤー切替UI
 │   │   ├── MapStats.tsx        ← PC用フロート統計
 │   │   └── MapControls.tsx     ← 現在地・全体表示ボタン
 │   │
@@ -99,14 +122,15 @@ navios/
 │   │   ├── SearchInput.tsx     ← 検索入力 (共通)
 │   │   └── SearchResults.tsx   ← Nominatimサジェスト表示
 │   │
-│   └── ui/
-│       ├── StatusBadge.tsx     ← TODAY / 開催予定 / 終了バッジ
-│       ├── GlassCard.tsx       ← backdrop-blur glassmorphismカード
-│       └── FilterTabs.tsx      ← all / today / upcoming / ended タブ
+│   ├── ui/
+│   │   ├── StatusBadge.tsx     ← いまココ / 開催予定 / 終了バッジ
+│   │   ├── GlassCard.tsx       ← backdrop-blur glassmorphismカード
+│   │   └── FilterTabs.tsx      ← all / today / upcoming / ended タブ
+│   └── providers/
+│       └── AuthSessionProvider.tsx ← SessionProvider ラッパー
 │
 ├── hooks/
 │   ├── useEvents.ts            ← イベントデータ取得・フィルター
-│   ├── useMapState.ts          ← マップのズーム・中心・スタイル状態
 │   ├── useGeolocation.ts       ← 現在地取得
 │   ├── useGeocode.ts           ← Nominatimジオコーディング (debounce付き)
 │   └── useMediaQuery.ts        ← PC / Mobile判定
@@ -114,22 +138,28 @@ navios/
 ├── lib/
 │   ├── prisma.ts               ← Prismaクライアントインスタンス
 │   ├── event-status.ts         ← getEventStatus / formatDateRange / daysUntilText
+│   ├── authz.ts                ← actor解決・owner/admin認可判定
+│   ├── auth-options.ts         ← Auth.js 設定 (Credentials)
+│   ├── auth-session.ts         ← actor解決 (Auth.js + 旧Cookie互換)
 │   └── constants.ts            ← STATUS_CONFIG, タイルURL等
 │
 ├── store/
-│   └── useAppStore.ts          ← Zustand: filter, selectedEvent, mapStyle
+│   └── useAppStore.ts          ← Zustand: filter, selectedEvent, UI state
 │
 ├── types/
-│   └── event.ts                ← Event型定義
+│   ├── event.ts                ← Event型定義
+│   └── next-auth.d.ts          ← Auth.js型拡張
 │
 ├── prisma/
 │   ├── schema.prisma           ← DBスキーマ
 │   ├── schema.supabase.prisma  ← Supabase切替リハーサル用スキーマ
 │   └── seed.mjs                ← サンプルデータ投入
 
-├── tests/
-│   ├── api/                    ← Route Handler テスト
-│   └── components/             ← 主要UIコンポーネントテスト
+├── scripts/
+│   ├── run-tests.sh            ← Prisma生成 + APIフローテスト実行
+│   ├── test-api-flow.mjs       ← new編集フロー相当を含む CRUD シナリオ
+│   ├── supabase-rehearsal.sh   ← Supabase接続リハーサル実行
+│   └── supabase-crud-check.mjs ← Supabase CRUD 実地確認
 │
 ├── public/
 │   └── (静的アセット)
@@ -155,8 +185,7 @@ navios/
 │ Header (PC) / MobileHeader (SP)             │
 ├──────────┬──────────────────────────────────┤
 │ Sidebar  │  MapContainer                    │
-│ (PC only)│    ├── EventMarker × N           │
-│          │    ├── MapStyleToggle (PC)        │
+│ (PC only)│    ├── MarkerIcon × N            │
 │          │    ├── MapStats (PC)              │
 │          │    ├── MapControls               │
 │          │    └── SpotBadge (SP)            │
@@ -177,13 +206,14 @@ navios/
 | `<header class="mobile-header">` | `MobileHeader.tsx` | Client | 検索+ハンバーガー、レスポンシブで出し分け |
 | `<aside class="pc-sidebar">` | `Sidebar.tsx` | Client | 検索+フィルタータブ+EventCard一覧 |
 | `<div id="map">` | `MapContainer.tsx` | Client | **dynamic import必須** (Leafletはブラウザ専用) |
-| `.marker-pin.pin-today/upcoming/ended` | `EventMarker.tsx` | Client | 時間軸に応じたアイコン・アニメーション切替 |
-| PC map overlays | `MapStats.tsx` + `MapStyleToggle.tsx` | Client | フロートUI |
+| `.marker-pin.pin-today/upcoming/ended` | `MarkerIcon.tsx` | Client | 時間軸 + カテゴリ + 投稿者アイコンの合成 |
+| PC map overlays | `MapStats.tsx` | Client | フロートUI |
 | `.bottom-sheet` | `BottomSheet.tsx` | Client | framer-motionでアニメーション推奨 |
-| `.menu-drawer` | `MenuDrawer.tsx` | Client | フィルター+スタイル切替 |
+| `.menu-drawer` | `MenuDrawer.tsx` | Client | フィルター+投稿/ログイン導線 |
 | `.search-results` | `SearchResults.tsx` | Client | Nominatimサジェスト |
 | `.post-card` | `EventCard.tsx` | Client | 時間軸ボーダー+バッジ |
-| `.status-badge` | `StatusBadge.tsx` | Server | TODAY/開催予定/終了の表示分け |
+| `.status-badge` | `StatusBadge.tsx` | Server | いまココ/開催予定/終了の表示分け |
+| 詳細画面の編集/削除導線 | `EventActions.tsx` | Client | owner 判定で表示制御 |
 
 ### 3-3. Leaflet の SSR 対策
 
@@ -205,16 +235,19 @@ export function MapContainer({ events }) {
 
 ```prisma
 model Event {
-  id           String   @id @default(cuid())
-  title        String
-  content      String
-  latitude     Float
-  longitude    Float
-  event_date   DateTime
-  expire_date  DateTime
-  event_image  String
-  created_at   DateTime @default(now())
-  updated_at   DateTime @updatedAt
+  id                String   @id @default(cuid())
+  title             String
+  content           String
+  author_id         String?
+  author_avatar_url String?
+  category          String   @default("other")
+  latitude          Float
+  longitude         Float
+  event_date        DateTime
+  expire_date       DateTime
+  event_image       String
+  created_at        DateTime @default(now())
+  updated_at        DateTime @updatedAt
 }
 ```
 
@@ -226,13 +259,17 @@ export interface Event {
   id: string;
   title: string;
   content: string;
+  author_id?: string | null;
+  author_avatar_url?: string | null;
+  category: 'festival' | 'gourmet' | 'nature' | 'culture' | 'other';
   latitude: number;
   longitude: number;
   event_date: string;   // 'YYYY-MM-DD'
   expire_date: string;  // 'YYYY-MM-DD'
-  event_image: string;  // URL
+  event_image: string;  // https URL or data:image/...;base64,...
 }
 
+export type EventCategory = 'festival' | 'gourmet' | 'nature' | 'culture' | 'other';
 export type EventStatus = 'today' | 'upcoming' | 'ended';
 ```
 
@@ -283,14 +320,12 @@ interface AppState {
   filter: 'all' | 'today' | 'upcoming' | 'ended';
   searchQuery: string;
   selectedEventId: string | null;
-  mapStyle: 'voyager' | 'light' | 'dark';
   isMenuOpen: boolean;
   isBottomSheetOpen: boolean;
 
   setFilter: (f: AppState['filter']) => void;
   setSearchQuery: (q: string) => void;
   selectEvent: (id: string | null) => void;
-  setMapStyle: (s: AppState['mapStyle']) => void;
   toggleMenu: () => void;
   setBottomSheet: (open: boolean) => void;
 }
@@ -318,15 +353,19 @@ interface AppState {
 {
   "title": "イベント名",
   "content": "本文",
+  "category": "festival|gourmet|nature|culture|other",
+  "author_avatar_url": "https://... (optional)",
   "latitude": 31.573,
   "longitude": 130.345,
   "event_date": "2026-03-01",
   "expire_date": "2026-03-01",
-  "event_image": "https://..."
+  "event_image": "https://... or data:image/...;base64,..."
 }
 ```
 
-- **実装状況**: バリデーション後に Prisma `event.create` で保存
+- **実装状況**: バリデーション後に Prisma `event.create` で保存（`event_image` は `https URL` / `data:image` 両対応）
+- **author_id**: ログインセッションの `userId` を保存（未ログインは `401`）
+- **author_avatar_url**: 省略時はログインユーザー情報から自動生成
 - **レスポンス形式**: `ok/data/error` を基本とし、互換のため `event` も返却
 
 ### `GET /api/events/[id]`
@@ -337,11 +376,13 @@ interface AppState {
 ### `PUT /api/events/[id]`
 
 - **実装状況**: `zod` バリデーション後に Prisma `event.update`
+- **認可**: owner または admin のみ更新可（未ログイン `401`、権限なし `403`）
 - **レスポンス形式**: `ok/data/error` を基本とし、互換のため `event` も返却
 
 ### `DELETE /api/events/[id]`
 
 - **実装状況**: Prisma `event.delete` で削除し、削除IDを返却
+- **認可**: owner または admin のみ削除可（未ログイン `401`、権限なし `403`）
 - **レスポンス形式**: `ok/data/error`
 
 ### `GET /event/[id]` (画面)
@@ -355,6 +396,28 @@ Nominatimへのプロキシ (レート制限: 1req/sec を考慮したサーバ�
 
 - **実装状況**: メモリキャッシュ(TTL 5分) + 1req/sec/IP の制限を追加済み
 - **レスポンス形式**: `ok/data/error` を基本とし、互換のため `results` も返却
+
+### `POST /api/auth/login`
+
+- **実装状況**: 互換用として email/password でログインし、署名付きCookieを発行（テスト/段階移行用）
+
+### `GET/POST /api/auth/[...nextauth]`
+
+- **実装状況**: Auth.js Credentials Provider で本セッション運用
+- **ログインUI**: `/login` から `signIn("credentials")` を使用
+
+### `POST /api/auth/logout`
+
+- **実装状況**: 互換Cookieを削除（Auth.js セッションは `signOut()` で破棄）
+
+### `GET /api/auth/session`
+
+- **実装状況**: 現在ログイン中の actor 情報を返却（Auth.js + 互換Cookie両対応）
+
+### `GET/PATCH /api/auth/profile`
+
+- **実装状況**: ログインユーザーのプロフィール（表示名）を取得/更新（Auth.js + 互換Cookie両対応）
+- **更新対象**: `username` のみ（email はログインIDとして固定）
 
 ---
 
@@ -370,7 +433,7 @@ Nominatimへのプロキシ (レート制限: 1req/sec を考慮したサーバ�
 | 6 | **インタラクション** | `BottomSheet`, `MenuDrawer`, `SearchInput/Results` |
 | 7 | **Zustand統合** | ストア作成、全コンポーネント接続 |
 | 8 | **DB + API** | Prismaセットアップ、`/api/events`, `/api/geocode` |
-| 9 | **Server Actions** | 投稿フォーム実装 |
+| 9 | **投稿フォーム連携** | `app/new/page.tsx` から `/api/events` 連携 |
 | 10 | **デプロイ** | Vercel + Supabase |
 
 ---
@@ -387,12 +450,19 @@ Nominatimへのプロキシ (レート制限: 1req/sec を考慮したサーバ�
 - Tailwindの `lg:hidden` / `lg:block` でのCSS切替も併用
 
 ### テスト
-- `vitest` で API (`/api/events`, `/api/events/[id]`) のテストを追加
-- `@testing-library/react` で `EventDetail` / `EventActions` の表示・操作テストを追加
+- `npm run test` は `scripts/run-tests.sh` 経由で `prisma generate` 後に `scripts/test-api-flow.mjs` を実行
+- 検証対象: 一覧取得・新規作成・非owner更新(`403`)・更新バリデーション異常・更新成功・詳細確認・削除・削除後404
+
+### 本番チェック
+- `docs.production-checklist.md` を追加し、環境変数・DB・監視項目をチェックリスト化
+- 認証/認可の設計ドラフトは `docs.authz-spec.md` に整理
 
 ### 時間軸ピン
 - `getEventStatus()` の結果に応じてCSSクラスを動的に切り替え
-- `zIndexOffset` で TODAY イベントを最前面に表示（モックアップと同じ）
+- `zIndexOffset` で いまココ イベントを最前面に表示（モックアップと同じ）
+- 中央は投稿者アイコン、左上はカテゴリチップ（絵文字 + 色）で表示
+- 大ピンは白背景 + ステータスごとのグラデーション枠
+- ピンのアニメーションは選択中イベントに限定して表示
 
 ### パフォーマンス
 - イベント一覧は `React.memo` + `useCallback` でリレンダー最適化
