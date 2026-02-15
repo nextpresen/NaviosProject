@@ -2,13 +2,15 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, MouseEvent, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChangeEvent, FormEvent, MouseEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { PostLocationPicker } from "@/components/map/PostLocationPicker";
 import { SearchInput, type SearchResultItem } from "@/components/search/SearchInput";
 import { EVENT_CATEGORY_OPTIONS, EVENT_TAG_OPTIONS } from "@/lib/event-taxonomy";
 import { useGeocode } from "@/hooks/useGeocode";
 import type { Event, EventCategory, EventTag } from "@/types/event";
+
+export const dynamic = "force-dynamic";
 
 type FormState = {
   title: string;
@@ -114,8 +116,9 @@ async function cropAndOptimizeImage(file: File) {
   return { dataUrl, sizeBytes: calcBase64Size(dataUrl) };
 }
 
-export default function NewEventPage() {
+function NewEventPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [editingId, setEditingId] = useState<string | null>(null);
   const isEdit = Boolean(editingId);
   const today = useMemo(() => todayIso(), []);
@@ -184,8 +187,8 @@ export default function NewEventPage() {
   }, []);
 
   useEffect(() => {
-    setEditingId(new URLSearchParams(window.location.search).get("id"));
-  }, []);
+    setEditingId(searchParams.get("id"));
+  }, [searchParams]);
 
   useEffect(() => {
     if (!editingId) return;
@@ -751,5 +754,13 @@ export default function NewEventPage() {
         )}
       </div>
     </main>
+  );
+}
+
+export default function NewEventPage() {
+  return (
+    <Suspense fallback={null}>
+      <NewEventPageInner />
+    </Suspense>
   );
 }

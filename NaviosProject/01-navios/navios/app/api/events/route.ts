@@ -2,6 +2,8 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
 import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
+import { toEvent } from "@/lib/event-mapper";
+import { resolveSchedule } from "@/lib/event-schedule";
 import { getEventStatus } from "@/lib/event-status";
 import {
   EVENT_CATEGORY_VALUES,
@@ -10,7 +12,8 @@ import {
   type EventFilter,
   type EventTag,
 } from "@/types/event";
-import { parseTagsJSON, stringifyTagsJSON, toSafeCategory } from "@/lib/event-taxonomy";
+import { stringifyTagsJSON } from "@/lib/event-taxonomy";
+import { imageSchema } from "@/lib/validations/event";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
 import { getUserProfile } from "@/lib/user-profile";
@@ -23,22 +26,6 @@ const querySchema = z.object({
   lng: z.coerce.number().finite().optional(),
   radius: z.coerce.number().positive().max(200).optional(),
 });
-
-const imageSchema = z
-  .string()
-  .min(1)
-  .max(7_000_000)
-  .refine((value) => {
-    if (value.startsWith("data:image/")) {
-      return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(value);
-    }
-    try {
-      const url = new URL(value);
-      return url.protocol === "http:" || url.protocol === "https:";
-    } catch {
-      return false;
-    }
-  }, "Invalid image format");
 
 const eventCreateSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -55,65 +42,6 @@ const eventCreateSchema = z.object({
   expire_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   event_image: imageSchema,
 });
-
-function toEvent(input: {
-  id: string;
-  title: string;
-  content: string;
-  author_id: string | null;
-  author_avatar_url: string | null;
-  category: string;
-  latitude: number;
-  longitude: number;
-  start_at: Date | null;
-  end_at: Date | null;
-  is_all_day: boolean;
-  event_date: Date;
-  expire_date: Date;
-  event_image: string;
-  tags_json: string;
-}): Event {
-  const startAt = input.start_at ?? new Date(`${input.event_date.toISOString().slice(0, 10)}T00:00:00.000Z`);
-  const endAt = input.end_at ?? new Date(`${input.expire_date.toISOString().slice(0, 10)}T23:59:59.000Z`);
-  return {
-    id: input.id,
-    title: input.title,
-    content: input.content,
-    author_id: input.author_id,
-    author_avatar_url: input.author_avatar_url,
-    category: toSafeCategory(input.category),
-    latitude: input.latitude,
-    longitude: input.longitude,
-    start_at: startAt.toISOString(),
-    end_at: endAt.toISOString(),
-    is_all_day: input.is_all_day ?? false,
-    event_date: input.event_date.toISOString().slice(0, 10),
-    expire_date: input.expire_date.toISOString().slice(0, 10),
-    event_image: input.event_image,
-    tags: parseTagsJSON(input.tags_json),
-  };
-}
-
-function resolveSchedule(payload: z.infer<typeof eventCreateSchema>) {
-  let startAt = payload.start_at ? new Date(payload.start_at) : null;
-  let endAt = payload.end_at ? new Date(payload.end_at) : null;
-
-  if (!startAt && payload.event_date) startAt = new Date(`${payload.event_date}T00:00:00.000Z`);
-  if (!endAt && payload.expire_date) endAt = new Date(`${payload.expire_date}T23:59:59.000Z`);
-
-  if (!startAt || !endAt || Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
-    return null;
-  }
-
-  if (payload.is_all_day) {
-    const startDate = startAt.toISOString().slice(0, 10);
-    const endDate = endAt.toISOString().slice(0, 10);
-    startAt = new Date(`${startDate}T00:00:00.000Z`);
-    endAt = new Date(`${endDate}T23:59:59.000Z`);
-  }
-
-  return { startAt, endAt };
-}
 
 function fallbackAvatarFromEmail(email: string) {
   return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(email)}`;
@@ -196,17 +124,31 @@ export async function GET(request: Request) {
     const events = rows.map(toEvent);
     const filtered = filterEvents(events, params);
     return NextResponse.json({ ...ok({ events: filtered }), events: filtered });
-  } catch {
+  } catch (error) {
+    console.error("GET /api/events failed:", error);
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        fail("SERVICE_UNAVAILABLE", "サービスに一時的な問題が発生しています"),
+        { status: 503 },
+      );
+    }
     const filtered = filterEvents(MOCK_EVENTS, params);
     return NextResponse.json({ ...ok({ events: filtered }), events: filtered });
   }
 }
 
 export async function POST(request: Request) {
-  const body = await request.json();
-  const parsed = eventCreateSchema.safeParse(body);
   const actor =
     (await getSessionActorFromRequest(request)) ?? (await getSessionActorFromServer());
+  if (!actor) {
+    return NextResponse.json(
+      fail("UNAUTHORIZED", "ログインが必要です"),
+      { status: 401 },
+    );
+  }
+
+  const body = await request.json();
+  const parsed = eventCreateSchema.safeParse(body);
 
   if (!parsed.success) {
     return NextResponse.json(
@@ -236,13 +178,6 @@ export async function POST(request: Request) {
     );
   }
 
-  if (!actor) {
-    return NextResponse.json(
-      fail("UNAUTHORIZED", "ログインが必要です"),
-      { status: 401 },
-    );
-  }
-
   try {
     const profile = await getUserProfile(actor.userId, actor.email);
     const created = await prisma.event.create({
@@ -268,8 +203,9 @@ export async function POST(request: Request) {
     const event = toEvent(created);
     return NextResponse.json({ ...ok({ event }), event }, { status: 201 });
   } catch (error) {
+    console.error("POST /api/events failed:", error);
     return NextResponse.json(
-      fail("DB_CREATE_FAILED", "Failed to create event", String(error)),
+      fail("DB_CREATE_FAILED", "イベントの作成に失敗しました"),
       { status: 500 },
     );
   }

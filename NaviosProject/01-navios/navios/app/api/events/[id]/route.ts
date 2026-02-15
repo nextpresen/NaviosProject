@@ -3,35 +3,21 @@ import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
 import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
 import { canManageEvent } from "@/lib/authz";
+import { toEvent } from "@/lib/event-mapper";
+import { resolveSchedule } from "@/lib/event-schedule";
 import {
   EVENT_CATEGORY_VALUES,
   EVENT_TAG_VALUES,
-  type Event,
   type EventTag,
 } from "@/types/event";
-import { parseTagsJSON, stringifyTagsJSON, toSafeCategory } from "@/lib/event-taxonomy";
+import { stringifyTagsJSON } from "@/lib/event-taxonomy";
+import { imageSchema } from "@/lib/validations/event";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
 
 const paramsSchema = z.object({
   id: z.string().trim().min(1),
 });
-
-const imageSchema = z
-  .string()
-  .min(1)
-  .max(7_000_000)
-  .refine((value) => {
-    if (value.startsWith("data:image/")) {
-      return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(value);
-    }
-    try {
-      const url = new URL(value);
-      return url.protocol === "http:" || url.protocol === "https:";
-    } catch {
-      return false;
-    }
-  }, "Invalid image format");
 
 const eventUpdateSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -48,65 +34,6 @@ const eventUpdateSchema = z.object({
   expire_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   event_image: imageSchema,
 });
-
-function toEvent(input: {
-  id: string;
-  title: string;
-  content: string;
-  author_id: string | null;
-  author_avatar_url: string | null;
-  category: string;
-  latitude: number;
-  longitude: number;
-  start_at: Date | null;
-  end_at: Date | null;
-  is_all_day: boolean;
-  event_date: Date;
-  expire_date: Date;
-  event_image: string;
-  tags_json: string;
-}): Event {
-  const startAt = input.start_at ?? new Date(`${input.event_date.toISOString().slice(0, 10)}T00:00:00.000Z`);
-  const endAt = input.end_at ?? new Date(`${input.expire_date.toISOString().slice(0, 10)}T23:59:59.000Z`);
-  return {
-    id: input.id,
-    title: input.title,
-    content: input.content,
-    author_id: input.author_id,
-    author_avatar_url: input.author_avatar_url,
-    category: toSafeCategory(input.category),
-    latitude: input.latitude,
-    longitude: input.longitude,
-    start_at: startAt.toISOString(),
-    end_at: endAt.toISOString(),
-    is_all_day: input.is_all_day ?? false,
-    event_date: input.event_date.toISOString().slice(0, 10),
-    expire_date: input.expire_date.toISOString().slice(0, 10),
-    event_image: input.event_image,
-    tags: parseTagsJSON(input.tags_json),
-  };
-}
-
-function resolveSchedule(payload: z.infer<typeof eventUpdateSchema>) {
-  let startAt = payload.start_at ? new Date(payload.start_at) : null;
-  let endAt = payload.end_at ? new Date(payload.end_at) : null;
-
-  if (!startAt && payload.event_date) startAt = new Date(`${payload.event_date}T00:00:00.000Z`);
-  if (!endAt && payload.expire_date) endAt = new Date(`${payload.expire_date}T23:59:59.000Z`);
-
-  if (!startAt || !endAt || Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
-    return null;
-  }
-
-  if (payload.is_all_day) {
-    const startDate = startAt.toISOString().slice(0, 10);
-    const endDate = endAt.toISOString().slice(0, 10);
-    startAt = new Date(`${startDate}T00:00:00.000Z`);
-    endAt = new Date(`${endDate}T23:59:59.000Z`);
-  }
-
-  return { startAt, endAt };
-}
 
 export async function GET(
   _: Request,
@@ -129,7 +56,14 @@ export async function GET(
     }
     const event = toEvent(row);
     return NextResponse.json({ ...ok({ event }), event });
-  } catch {
+  } catch (error) {
+    console.error("GET /api/events/[id] failed:", error);
+    if (process.env.NODE_ENV === "production") {
+      return NextResponse.json(
+        fail("SERVICE_UNAVAILABLE", "サービスに一時的な問題が発生しています"),
+        { status: 503 },
+      );
+    }
     const event = MOCK_EVENTS.find((item) => item.id === id);
     if (!event) {
       return NextResponse.json(fail("NOT_FOUND", "Event not found"), { status: 404 });
@@ -229,8 +163,9 @@ export async function PUT(
     if (message.includes("Record to update not found")) {
       return NextResponse.json(fail("NOT_FOUND", "Event not found"), { status: 404 });
     }
+    console.error("PUT /api/events/[id] failed:", error);
     return NextResponse.json(
-      fail("DB_UPDATE_FAILED", "Failed to update event", message),
+      fail("DB_UPDATE_FAILED", "イベントの更新に失敗しました"),
       { status: 500 },
     );
   }
@@ -279,8 +214,9 @@ export async function DELETE(
     if (message.includes("Record to delete does not exist")) {
       return NextResponse.json(fail("NOT_FOUND", "Event not found"), { status: 404 });
     }
+    console.error("DELETE /api/events/[id] failed:", error);
     return NextResponse.json(
-      fail("DB_DELETE_FAILED", "Failed to delete event", message),
+      fail("DB_DELETE_FAILED", "イベントの削除に失敗しました"),
       { status: 500 },
     );
   }
