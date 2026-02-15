@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
 import { CircleMarker, MapContainer as LeafletMapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import MarkerClusterGroup from "react-leaflet-cluster";
 import type { Event } from "@/types/event";
 import { TILE_ATTRIBUTION, TILE_URL } from "@/lib/constants";
 import { daysUntilText, formatEventSchedule, getEventStatus } from "@/lib/event-status";
@@ -157,53 +158,93 @@ export function MapInner({
     return [31.57371, 130.345154];
   }, [events]);
 
+  const clusterIcon = useMemo(
+    () => (cluster: { getChildCount: () => number }) => {
+      const count = cluster.getChildCount();
+      const size = count >= 100 ? 52 : count >= 20 ? 46 : 40;
+      const fontSize = count >= 100 ? "13px" : "12px";
+      const html = `
+        <div style="
+          width:${size}px;
+          height:${size}px;
+          border-radius:9999px;
+          display:flex;
+          align-items:center;
+          justify-content:center;
+          color:#ffffff;
+          font-weight:800;
+          font-size:${fontSize};
+          background:linear-gradient(135deg,#ec4899,#be185d);
+          border:2px solid rgba(255,255,255,.88);
+          box-shadow:0 8px 20px rgba(190,24,93,.35);
+        ">${count}</div>
+      `;
+
+      return L.divIcon({
+        html,
+        className: "navios-cluster-icon",
+        iconSize: [size, size],
+      });
+    },
+    [],
+  );
+
   return (
     <LeafletMapContainer center={center} zoom={14} zoomControl={false} className="w-full h-full">
       <TileLayer url={TILE_URL} maxZoom={20} attribution={TILE_ATTRIBUTION} />
 
-      {events.map((event) => {
-        const status = getEventStatus(event);
-        const isSelected = selectedEventId === event.id;
-        const avatarUrl =
-          event.author_avatar_url ??
-          (event.author_id
-            ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(event.author_id)}`
-            : null);
-        const icon = L.divIcon({
-          html: buildMarkerHTML(status, event.category, avatarUrl, isSelected),
-          className: "",
-          ...markerSizeByStatus(status),
-        });
+      <MarkerClusterGroup
+        chunkedLoading
+        spiderfyOnMaxZoom
+        showCoverageOnHover={false}
+        maxClusterRadius={45}
+        disableClusteringAtZoom={17}
+        iconCreateFunction={clusterIcon}
+      >
+        {events.map((event) => {
+          const status = getEventStatus(event);
+          const isSelected = selectedEventId === event.id;
+          const avatarUrl =
+            event.author_avatar_url ??
+            (event.author_id
+              ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(event.author_id)}`
+              : null);
+          const icon = L.divIcon({
+            html: buildMarkerHTML(status, event.category, avatarUrl, isSelected),
+            className: "",
+            ...markerSizeByStatus(status),
+          });
 
-        return (
-          <Marker
-            key={event.id}
-            position={[event.latitude, event.longitude]}
-            icon={icon}
-            zIndexOffset={status === "today" ? 1200 : status === "upcoming" ? 200 : -200}
-            eventHandlers={{ click: () => onSelectEvent?.(event.id) }}
-          >
-            <Popup
-              maxWidth={320}
-              minWidth={180}
-              autoPan
-              keepInView
-              autoPanPaddingTopLeft={[16, 16]}
-              autoPanPaddingBottomRight={[16, 24]}
+          return (
+            <Marker
+              key={event.id}
+              position={[event.latitude, event.longitude]}
+              icon={icon}
+              zIndexOffset={status === "today" ? 1200 : status === "upcoming" ? 200 : -200}
+              eventHandlers={{ click: () => onSelectEvent?.(event.id) }}
             >
-              <EventPopup
-                id={event.id}
-                title={event.title}
-                content={event.content}
-                imageUrl={event.event_image}
-                dateText={formatEventSchedule(event)}
-                daysText={daysUntilText(event)}
-                status={status}
-              />
-            </Popup>
-          </Marker>
-        );
-      })}
+              <Popup
+                maxWidth={320}
+                minWidth={180}
+                autoPan
+                keepInView
+                autoPanPaddingTopLeft={[16, 16]}
+                autoPanPaddingBottomRight={[16, 24]}
+              >
+                <EventPopup
+                  id={event.id}
+                  title={event.title}
+                  content={event.content}
+                  imageUrl={event.event_image}
+                  dateText={formatEventSchedule(event)}
+                  daysText={daysUntilText(event)}
+                  status={status}
+                />
+              </Popup>
+            </Marker>
+          );
+        })}
+      </MarkerClusterGroup>
 
       {currentLocation ? (
         <CircleMarker

@@ -639,29 +639,32 @@ export default function NewEventPage() {
           </details>
 
           <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
-            <div className="flex items-center justify-between gap-2">
-              <span className="text-sm font-semibold text-slate-700">開催日時</span>
-              <button
-                type="button"
-                onClick={() => {
-                  updateStartAt(withTime(today, "09:00"));
-                  updateEndAt(withTime(today, "18:00"));
-                  toggleAllDay(false);
-                }}
-                className="inline-flex items-center rounded-lg border border-pink-200 bg-pink-50 px-2.5 py-1 text-[11px] font-bold text-pink-700 hover:bg-pink-100"
-              >
-                今日の営業時間にする
-              </button>
-            </div>
+            <span className="text-sm font-semibold text-slate-700">開催日時</span>
 
-            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
-              <input
-                type="checkbox"
-                checked={form.is_all_day}
-                onChange={(e) => toggleAllDay(e.target.checked)}
-                className="h-4 w-4 rounded border-slate-300"
-              />
-              終日イベント
+            <label
+              htmlFor="is-all-day"
+              className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2.5 cursor-pointer"
+            >
+              <div>
+                <p className="text-sm font-semibold text-slate-800">終日イベント</p>
+                <p className="text-[11px] text-slate-500">開始 00:00 / 終了 23:59 で保存</p>
+              </div>
+              <span className="inline-flex items-center gap-2">
+                <span className={`text-[11px] font-bold ${form.is_all_day ? "text-emerald-600" : "text-slate-400"}`}>
+                  {form.is_all_day ? "ON" : "OFF"}
+                </span>
+                <span className="relative inline-flex h-6 w-11 items-center">
+                  <input
+                    id="is-all-day"
+                    type="checkbox"
+                    checked={form.is_all_day}
+                    onChange={(e) => toggleAllDay(e.target.checked)}
+                    className="peer sr-only"
+                  />
+                  <span className="absolute inset-0 rounded-full bg-slate-300 transition-colors peer-checked:bg-emerald-500" />
+                  <span className="absolute left-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform peer-checked:translate-x-5" />
+                </span>
+              </span>
             </label>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">

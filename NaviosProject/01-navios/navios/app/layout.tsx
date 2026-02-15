@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "leaflet/dist/leaflet.css";
+import "react-leaflet-cluster/dist/assets/MarkerCluster.css";
+import "react-leaflet-cluster/dist/assets/MarkerCluster.Default.css";
 import { AuthSessionProvider } from "@/components/providers/AuthSessionProvider";
 
 export const metadata: Metadata = {
