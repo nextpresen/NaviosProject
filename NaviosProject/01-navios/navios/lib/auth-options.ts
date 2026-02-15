@@ -1,7 +1,7 @@
 import type { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import bcrypt from "bcryptjs";
-import { getUsername } from "@/lib/user-profile";
+import { getUserProfile } from "@/lib/user-profile";
 import { prisma } from "@/lib/prisma";
 
 type LegacyUser = {
@@ -54,11 +54,12 @@ export const authOptions: NextAuthOptions = {
           if (account) {
             const matched = await bcrypt.compare(password, account.password_hash);
             if (matched) {
-              const username = await getUsername(account.id, account.email);
+              const profile = await getUserProfile(account.id, account.email);
               return {
                 id: account.id,
                 email: account.email,
-                name: username,
+                name: profile.username,
+                image: profile.avatar_url,
                 role: account.role,
               };
             }
@@ -73,12 +74,13 @@ export const authOptions: NextAuthOptions = {
         );
         if (!found) return null;
 
-        const username = await getUsername(found.id, found.email);
+        const profile = await getUserProfile(found.id, found.email);
 
         return {
           id: found.id,
           email: found.email,
-          name: username,
+          name: profile.username,
+          image: profile.avatar_url,
           role: found.role,
         };
       },
@@ -95,6 +97,7 @@ export const authOptions: NextAuthOptions = {
       if (user) {
         token.role = (user as { role?: string }).role ?? "user";
         token.name = user.name ?? token.name;
+        token.picture = user.image ?? token.picture;
       }
       return token;
     },
@@ -103,6 +106,7 @@ export const authOptions: NextAuthOptions = {
         session.user.id = String(token.sub ?? "");
         session.user.role = String(token.role ?? "user");
         session.user.name = token.name ?? session.user.name;
+        session.user.image = token.picture ?? session.user.image;
       }
       return session;
     },

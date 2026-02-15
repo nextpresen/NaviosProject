@@ -4,7 +4,7 @@ import bcrypt from "bcryptjs";
 import { fail, ok } from "@/lib/api-response";
 import { getLegacyUsers } from "@/lib/auth-options";
 import { prisma } from "@/lib/prisma";
-import { saveUsername } from "@/lib/user-profile";
+import { saveUserProfile } from "@/lib/user-profile";
 
 const schema = z.object({
   email: z.string().trim().email().max(320),
@@ -60,7 +60,7 @@ export async function POST(request: Request) {
       select: { id: true, email: true, role: true },
     });
 
-    await saveUsername(account.id, account.email, username);
+    const profile = await saveUserProfile(account.id, account.email, { username });
 
     return NextResponse.json(
       ok({
@@ -68,7 +68,8 @@ export async function POST(request: Request) {
           id: account.id,
           email: account.email,
           role: account.role,
-          username,
+          username: profile.username,
+          avatar_url: profile.avatar_url,
         },
       }),
       { status: 201 },

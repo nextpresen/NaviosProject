@@ -13,8 +13,8 @@ export function MapStats({ total, today, upcoming }: MapStatsProps) {
       </div>
       <div className="w-px bg-slate-200" />
       <div>
-        <p className="text-[10px] font-semibold text-amber-500 tracking-wider">いまココ</p>
-        <p className="text-xl font-extrabold text-amber-500 leading-tight">{today}</p>
+        <p className="text-[10px] font-semibold text-pink-500 tracking-wider">いまココ</p>
+        <p className="text-xl font-extrabold text-pink-600 leading-tight">{today}</p>
       </div>
       <div className="w-px bg-slate-200" />
       <div>

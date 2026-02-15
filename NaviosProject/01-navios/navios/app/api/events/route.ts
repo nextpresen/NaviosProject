@@ -5,6 +5,7 @@ import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/aut
 import { getEventStatus } from "@/lib/event-status";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
+import { getUserProfile } from "@/lib/user-profile";
 import type { Event, EventCategory, EventFilter } from "@/types/event";
 
 const statusSchema = z.enum(["all", "today", "upcoming", "ended"]);
@@ -191,12 +192,14 @@ export async function POST(request: Request) {
   }
 
   try {
+    const profile = await getUserProfile(actor.userId, actor.email);
     const created = await prisma.event.create({
       data: {
         title: payload.title,
         content: payload.content,
         author_id: actor.userId,
-        author_avatar_url: payload.author_avatar_url ?? fallbackAvatarFromEmail(actor.email),
+        author_avatar_url:
+          payload.author_avatar_url ?? profile.avatar_url ?? fallbackAvatarFromEmail(actor.email),
         category: payload.category ?? "other",
         latitude: payload.latitude,
         longitude: payload.longitude,

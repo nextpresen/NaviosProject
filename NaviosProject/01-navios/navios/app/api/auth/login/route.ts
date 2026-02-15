@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
 import { authenticate, buildSessionSetCookie, createSessionToken } from "@/lib/auth-session";
-import { getUsername } from "@/lib/user-profile";
+import { getUserProfile } from "@/lib/user-profile";
 
 const schema = z.object({
   email: z.string().email(),
@@ -27,9 +27,9 @@ export async function POST(request: Request) {
     );
   }
 
-  const username = await getUsername(actor.userId, actor.email);
+  const profile = await getUserProfile(actor.userId, actor.email);
   const token = createSessionToken(actor);
-  const response = NextResponse.json(ok({ actor: { ...actor, username } }));
+  const response = NextResponse.json(ok({ actor: { ...actor, ...profile } }));
   response.headers.set("Set-Cookie", buildSessionSetCookie(token));
   return response;
 }

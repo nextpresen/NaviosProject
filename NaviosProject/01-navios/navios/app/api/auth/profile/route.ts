@@ -2,10 +2,27 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
 import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
-import { getUsername, saveUsername } from "@/lib/user-profile";
+import { getUserProfile, saveUserProfile } from "@/lib/user-profile";
 
 const updateSchema = z.object({
   username: z.string().trim().min(1).max(24),
+  avatar_url: z
+    .string()
+    .trim()
+    .max(7_000_000)
+    .optional()
+    .refine((value) => {
+      if (!value || value.length === 0) return true;
+      if (value.startsWith("data:image/")) {
+        return /^data:image\/[a-zA-Z0-9.+-]+;base64,/.test(value);
+      }
+      try {
+        const url = new URL(value);
+        return url.protocol === "http:" || url.protocol === "https:";
+      } catch {
+        return false;
+      }
+    }, "Invalid avatar format"),
 });
 
 export async function GET(request: Request) {
@@ -14,8 +31,8 @@ export async function GET(request: Request) {
   if (!actor) {
     return NextResponse.json(fail("UNAUTHORIZED", "ログインが必要です"), { status: 401 });
   }
-  const username = await getUsername(actor.userId, actor.email);
-  return NextResponse.json(ok({ actor: { ...actor, username } }));
+  const profile = await getUserProfile(actor.userId, actor.email);
+  return NextResponse.json(ok({ actor: { ...actor, ...profile } }));
 }
 
 export async function PATCH(request: Request) {
@@ -35,11 +52,14 @@ export async function PATCH(request: Request) {
   }
 
   try {
-    const username = await saveUsername(actor.userId, actor.email, parsed.data.username);
-    return NextResponse.json(ok({ actor: { ...actor, username } }));
+    const profile = await saveUserProfile(actor.userId, actor.email, {
+      username: parsed.data.username,
+      avatar_url: parsed.data.avatar_url,
+    });
+    return NextResponse.json(ok({ actor: { ...actor, ...profile } }));
   } catch (error) {
     return NextResponse.json(
-      fail("DB_UPDATE_FAILED", "ユーザー名の更新に失敗しました", String(error)),
+      fail("DB_UPDATE_FAILED", "プロフィールの更新に失敗しました", String(error)),
       { status: 500 },
     );
   }

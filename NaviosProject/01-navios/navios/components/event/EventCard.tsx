@@ -24,13 +24,13 @@ interface EventCardProps {
 export function EventCard({ event, active = false, onClick }: EventCardProps) {
   const borderAccent =
     event.status === "today"
-      ? "border-l-4 border-l-amber-400"
+      ? "border-l-4 border-l-pink-500"
       : event.status === "upcoming"
         ? "border-l-4 border-l-blue-400"
         : "border-l-4 border-l-slate-200";
 
   const textColor =
-    event.status === "today" ? "text-amber-600" : event.status === "upcoming" ? "text-blue-600" : "text-slate-400";
+    event.status === "today" ? "text-pink-600" : event.status === "upcoming" ? "text-blue-600" : "text-slate-400";
 
   return (
     <article

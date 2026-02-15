@@ -54,7 +54,7 @@ Open:
 - Login page: `http://localhost:3000/login`
 - Signup page: `http://localhost:3000/signup`
 - User indicator page: `http://localhost:3000/me`
-  - Username can be edited on this page
+  - Username and avatar icon can be edited on this page
 
 ## Useful scripts
 
@@ -101,7 +101,7 @@ Request body:
 
 - Requires logged-in session and stores `author_id = session.user.id`.
 - `event_image` は `http/https` URL またはフォームアップロード由来の `data:image/...` を受け付けます。
-- `author_avatar_url` は省略時にログインユーザーのメールアドレスから自動生成されます。
+- `author_avatar_url` は省略時にログインユーザープロフィール画像（未設定時はメール由来のデフォルト画像）を自動使用します。
 
 Map marker behavior:
 
@@ -135,7 +135,7 @@ UI behavior:
 - `POST /api/auth/logout`
 - `GET /api/auth/session`
 - `GET /api/auth/profile`
-- `PATCH /api/auth/profile` (`{ "username": "..." }`)
+- `PATCH /api/auth/profile` (`{ "username": "...", "avatar_url": "data:image/... or https://..." }`)
 
 Notes:
 

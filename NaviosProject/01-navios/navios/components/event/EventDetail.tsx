@@ -12,7 +12,7 @@ interface EventDetailProps {
 }
 
 export function EventDetail({ id, title, content, imageUrl, dateText, daysText, status }: EventDetailProps) {
-  const textColor = status === "today" ? "text-amber-600" : status === "upcoming" ? "text-blue-600" : "text-slate-400";
+  const textColor = status === "today" ? "text-pink-600" : status === "upcoming" ? "text-blue-600" : "text-slate-400";
 
   return (
     <article data-id={id} className="max-w-3xl mx-auto px-4 py-6">

@@ -15,7 +15,7 @@ export const STATUS_CONFIG: Record<
     label: "いまココ",
     labelShort: "NOW",
     pinClass: "pin-today",
-    badgeClass: "bg-amber-100 text-amber-700",
+    badgeClass: "bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white",
     emoji: "🔥",
     icon: "📍",
   },

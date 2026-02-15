@@ -13,7 +13,7 @@ interface EventPopupProps {
 }
 
 export function EventPopup({ id, title, content, imageUrl, dateText, daysText, status }: EventPopupProps) {
-  const textColor = status === "today" ? "text-amber-600" : status === "upcoming" ? "text-blue-600" : "text-slate-400";
+  const textColor = status === "today" ? "text-pink-600" : status === "upcoming" ? "text-blue-600" : "text-slate-400";
 
   return (
     <div className="max-w-full" style={{ width: "min(280px, calc(100vw - 96px))" }}>

@@ -8,7 +8,6 @@ import { Header } from "@/components/layout/Header";
 import { MobileHeader } from "@/components/layout/MobileHeader";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MapContainer } from "@/components/map/MapContainer";
-import { BottomSheet } from "@/components/mobile/BottomSheet";
 import { MenuDrawer } from "@/components/mobile/MenuDrawer";
 import type { SearchResultItem } from "@/components/search/SearchInput";
 import { StatusBadge } from "@/components/ui/StatusBadge";
@@ -29,13 +28,11 @@ export default function HomePage() {
   const searchQuery = useAppStore((state) => state.searchQuery);
   const selectedEventId = useAppStore((state) => state.selectedEventId);
   const isMenuOpen = useAppStore((state) => state.isMenuOpen);
-  const isBottomSheetOpen = useAppStore((state) => state.isBottomSheetOpen);
 
   const setFilter = useAppStore((state) => state.setFilter);
   const setSearchQuery = useAppStore((state) => state.setSearchQuery);
   const selectEvent = useAppStore((state) => state.selectEvent);
   const setMenu = useAppStore((state) => state.setMenu);
-  const setBottomSheet = useAppStore((state) => state.setBottomSheet);
 
   useEffect(() => {
     const loadEvents = async () => {
@@ -87,17 +84,11 @@ export default function HomePage() {
   const handleSelectEventFromMap = (id: string) => {
     selectEvent(id);
     setPcCardPopupOpen(false);
-    if (isMobile) {
-      setBottomSheet(true);
-    }
   };
 
   const handleSelectEventFromSidebar = (id: string) => {
     selectEvent(id);
-    if (isMobile) {
-      setBottomSheet(true);
-      return;
-    }
+    if (isMobile) return;
     setPcCardPopupOpen(true);
   };
 
@@ -105,9 +96,6 @@ export default function HomePage() {
     setSearchQuery(item.title);
     selectEvent(item.id);
     setPcCardPopupOpen(false);
-    if (isMobile) {
-      setBottomSheet(true);
-    }
   };
 
   return (
@@ -198,43 +186,6 @@ export default function HomePage() {
         </div>
       ) : null}
 
-      <BottomSheet isOpen={isBottomSheetOpen} onClose={() => setBottomSheet(false)}>
-        {selectedEvent ? (
-          <div>
-            <div className="relative -mx-4 -mt-4 mb-4">
-              <Image
-                src={selectedEvent.event_image}
-                alt={selectedEvent.title}
-                width={1200}
-                height={768}
-                unoptimized
-                className="w-full h-48 object-cover rounded-t-2xl"
-              />
-              <StatusBadge
-                status={getEventStatus(selectedEvent)}
-                className="absolute top-3 left-3 backdrop-blur-sm shadow"
-              />
-            </div>
-            <h2 className="text-lg font-extrabold text-slate-900 mb-2">
-              {selectedEvent.title}
-            </h2>
-            <p className="text-xs text-slate-500 mb-3">
-              📅 {formatDateRange(selectedEvent.event_date, selectedEvent.expire_date)}
-            </p>
-            <p className="text-sm text-slate-600 leading-relaxed mb-5">
-              {selectedEvent.content}
-            </p>
-            <button
-              type="button"
-              className="w-full bg-slate-900 text-white text-sm font-bold py-3 rounded-xl"
-              onClick={() => setBottomSheet(false)}
-            >
-              閉じる
-            </button>
-          </div>
-        ) : null}
-      </BottomSheet>
-
       <MenuDrawer
         isOpen={isMenuOpen}
         currentFilter={filter}
@@ -272,10 +223,10 @@ export default function HomePage() {
 
         .marker-pin.pin-today { width: 52px; height: 64px; }
         .marker-pin.pin-today .pin-body { width: 46px; height: 46px; }
-        .marker-pin.pin-today .pin-body::before { background: linear-gradient(135deg,#f59e0b,#d97706); }
-        .marker-pin.pin-today .pin-label { background: linear-gradient(135deg,#dc2626,#b91c1c); color: #fff; }
-        .marker-pin.pin-today .pin-pulse { background: rgba(245,158,11,.4); }
-        .marker-pin.pin-today .pin-glow { background: radial-gradient(circle, rgba(245,158,11,.2) 0%, transparent 70%); }
+        .marker-pin.pin-today .pin-body::before { background: linear-gradient(135deg,#ec4899,#be185d); }
+        .marker-pin.pin-today .pin-label { background: linear-gradient(135deg,#f472b6,#db2777); color: #fff; }
+        .marker-pin.pin-today .pin-pulse { background: rgba(236,72,153,.45); }
+        .marker-pin.pin-today .pin-glow { background: radial-gradient(circle, rgba(236,72,153,.24) 0%, transparent 70%); }
 
         .marker-pin.pin-upcoming .pin-body::before { background: linear-gradient(135deg,#2a91ff,#0f5ce1); }
         .marker-pin.pin-upcoming .pin-label { background: #dbeafe; color: #1d4ed8; }

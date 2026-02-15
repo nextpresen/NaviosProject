@@ -26,6 +26,7 @@ model Event {
 model UserProfile {
   user_id    String   @id
   username   String
+  avatar_url String?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
 }
