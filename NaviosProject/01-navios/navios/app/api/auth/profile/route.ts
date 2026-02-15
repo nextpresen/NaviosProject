@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
-import { getSessionActorFromRequest } from "@/lib/auth-session";
+import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
 import { getUsername, saveUsername } from "@/lib/user-profile";
 
 const updateSchema = z.object({
@@ -9,7 +9,8 @@ const updateSchema = z.object({
 });
 
 export async function GET(request: Request) {
-  const actor = getSessionActorFromRequest(request);
+  const actor =
+    (await getSessionActorFromRequest(request)) ?? (await getSessionActorFromServer());
   if (!actor) {
     return NextResponse.json(fail("UNAUTHORIZED", "ログインが必要です"), { status: 401 });
   }
@@ -18,7 +19,8 @@ export async function GET(request: Request) {
 }
 
 export async function PATCH(request: Request) {
-  const actor = getSessionActorFromRequest(request);
+  const actor =
+    (await getSessionActorFromRequest(request)) ?? (await getSessionActorFromServer());
   if (!actor) {
     return NextResponse.json(fail("UNAUTHORIZED", "ログインが必要です"), { status: 401 });
   }

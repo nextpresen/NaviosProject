@@ -2,6 +2,7 @@
 
 import { FormEvent, useState } from "react";
 import { useRouter } from "next/navigation";
+import { signIn } from "next-auth/react";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,17 +17,14 @@ export default function LoginPage() {
     setError(null);
 
     try {
-      const response = await fetch("/api/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const response = await signIn("credentials", {
+        email,
+        password,
+        redirect: false,
       });
-      const payload = (await response.json().catch(() => null)) as
-        | { error?: { message?: string } }
-        | null;
 
-      if (!response.ok) {
-        throw new Error(payload?.error?.message ?? "ログインに失敗しました");
+      if (!response || response.error) {
+        throw new Error("メールアドレスまたはパスワードが正しくありません");
       }
 
       router.push("/");

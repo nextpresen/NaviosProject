@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
-import { getSessionActorFromRequest } from "@/lib/auth-session";
+import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
 import { getEventStatus } from "@/lib/event-status";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
@@ -162,7 +162,8 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const body = await request.json();
   const parsed = eventCreateSchema.safeParse(body);
-  const actor = getSessionActorFromRequest(request);
+  const actor =
+    (await getSessionActorFromRequest(request)) ?? (await getSessionActorFromServer());
 
   if (!parsed.success) {
     return NextResponse.json(

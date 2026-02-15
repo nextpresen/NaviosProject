@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
-import { getSessionActorFromRequest } from "@/lib/auth-session";
+import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
 import { canManageEvent } from "@/lib/authz";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
@@ -101,7 +101,8 @@ export async function PUT(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const actor = getSessionActorFromRequest(request);
+  const actor =
+    (await getSessionActorFromRequest(request)) ?? (await getSessionActorFromServer());
   if (!actor) {
     return NextResponse.json(
       fail("UNAUTHORIZED", "ログインが必要です"),
@@ -184,7 +185,8 @@ export async function DELETE(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const actor = getSessionActorFromRequest(request);
+  const actor =
+    (await getSessionActorFromRequest(request)) ?? (await getSessionActorFromServer());
   if (!actor) {
     return NextResponse.json(
       fail("UNAUTHORIZED", "ログインが必要です"),

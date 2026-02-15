@@ -1,10 +1,11 @@
 import { NextResponse } from "next/server";
 import { ok } from "@/lib/api-response";
-import { getSessionActorFromRequest } from "@/lib/auth-session";
+import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
 import { getUsername } from "@/lib/user-profile";
 
 export async function GET(request: Request) {
-  const actor = getSessionActorFromRequest(request);
+  const actor =
+    (await getSessionActorFromRequest(request)) ?? (await getSessionActorFromServer());
   if (!actor) {
     return NextResponse.json(ok({ actor: null }));
   }

@@ -26,6 +26,8 @@ export default function NewEventPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const isEdit = Boolean(editingId);
   const today = useMemo(() => todayIso(), []);
+  const [checkingAuth, setCheckingAuth] = useState(true);
+  const [canPost, setCanPost] = useState(false);
 
   const [form, setForm] = useState<FormState>({
     title: "",
@@ -42,6 +44,36 @@ export default function NewEventPage() {
   const [loadingExisting, setLoadingExisting] = useState(false);
   const [readingImage, setReadingImage] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    const run = async () => {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store" });
+        const payload = (await response.json().catch(() => null)) as
+          | {
+              data?: {
+                actor?: {
+                  userId?: string;
+                } | null;
+              };
+            }
+          | null;
+        const actor = payload?.data?.actor;
+        if (!cancelled) {
+          setCanPost(Boolean(actor?.userId));
+        }
+      } finally {
+        if (!cancelled) {
+          setCheckingAuth(false);
+        }
+      }
+    };
+    void run();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     setEditingId(new URLSearchParams(window.location.search).get("id"));
@@ -136,6 +168,10 @@ export default function NewEventPage() {
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!canPost) {
+      setError("ログインが必要です。");
+      return;
+    }
     setError(null);
     setSubmitting(true);
 
@@ -208,7 +244,30 @@ export default function NewEventPage() {
           </Link>
         </div>
 
-        <form className="space-y-4" onSubmit={handleSubmit}>
+        {checkingAuth ? (
+          <p className="rounded-lg bg-slate-100 text-slate-600 text-sm px-3 py-2">認証状態を確認中...</p>
+        ) : !canPost ? (
+          <div className="space-y-4">
+            <p className="rounded-lg bg-amber-50 text-amber-800 text-sm px-3 py-2">
+              ログインが必要です。ログイン後に投稿できます。
+            </p>
+            <div className="flex flex-wrap gap-3">
+              <Link
+                href="/login"
+                className="inline-flex items-center rounded-xl bg-slate-900 text-white text-sm font-bold px-5 py-2.5"
+              >
+                ログインへ進む
+              </Link>
+              <Link
+                href="/"
+                className="inline-flex items-center rounded-xl border border-slate-300 bg-white text-slate-700 text-sm font-semibold px-4 py-2.5"
+              >
+                トップへ戻る
+              </Link>
+            </div>
+          </div>
+        ) : (
+          <form className="space-y-4" onSubmit={handleSubmit}>
           <label className="block">
             <span className="text-sm font-semibold text-slate-700">タイトル</span>
             <input
@@ -342,7 +401,8 @@ export default function NewEventPage() {
               </Link>
             ) : null}
           </div>
-        </form>
+          </form>
+        )}
       </div>
     </main>
   );

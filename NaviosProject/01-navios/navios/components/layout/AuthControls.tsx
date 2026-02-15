@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 type Actor = {
@@ -38,6 +39,7 @@ export function AuthControls() {
   }, []);
 
   const onLogout = async () => {
+    await signOut({ redirect: false });
     await fetch("/api/auth/logout", { method: "POST" });
     setActor(null);
     router.push("/");

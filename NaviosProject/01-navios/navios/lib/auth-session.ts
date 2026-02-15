@@ -1,5 +1,8 @@
 import crypto from "node:crypto";
 import { cookies } from "next/headers";
+import { getServerSession } from "next-auth";
+import { getToken } from "next-auth/jwt";
+import { authOptions, getLegacyUsers } from "@/lib/auth-options";
 
 export type AuthRole = "user" | "admin";
 
@@ -7,13 +10,7 @@ export type SessionActor = {
   userId: string;
   role: AuthRole;
   email: string;
-};
-
-type AuthUser = {
-  id: string;
-  email: string;
-  password: string;
-  role: AuthRole;
+  username?: string;
 };
 
 const SESSION_COOKIE = "navios_session";
@@ -35,27 +32,9 @@ function sign(payload: string) {
   return crypto.createHmac("sha256", getSecret()).update(payload).digest("base64url");
 }
 
-function getAuthUsers(): AuthUser[] {
-  const raw = process.env.AUTH_USERS_JSON;
-  if (raw) {
-    try {
-      const parsed = JSON.parse(raw) as AuthUser[];
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-    } catch {
-      // fallback to defaults
-    }
-  }
-
-  return [
-    { id: "demo-user", email: "user@navios.local", password: "user1234", role: "user" },
-    { id: "demo-user-2", email: "user2@navios.local", password: "user2234", role: "user" },
-    { id: "demo-admin", email: "admin@navios.local", password: "admin1234", role: "admin" },
-  ];
-}
-
 export function authenticate(email: string, password: string): SessionActor | null {
   const normalized = email.trim().toLowerCase();
-  const found = getAuthUsers().find(
+  const found = getLegacyUsers().find(
     (user) => user.email.toLowerCase() === normalized && user.password === password,
   );
   if (!found) return null;
@@ -125,15 +104,50 @@ function readCookieValue(cookieHeader: string | null, key: string) {
   return found.slice(key.length + 1);
 }
 
-export function getSessionActorFromRequest(request: Request): SessionActor | null {
+async function getSessionActorFromNextAuthCookie(request: Request): Promise<SessionActor | null> {
+  const secret = process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? "dev-navios-auth-secret";
+  const token = await getToken({
+    req: {
+      headers: {
+        cookie: request.headers.get("cookie") ?? "",
+      },
+    } as never,
+    secret,
+  });
+
+  if (!token?.sub || !token.email) return null;
+  return {
+    userId: String(token.sub),
+    role: String(token.role ?? "user") as AuthRole,
+    email: String(token.email),
+    username: token.name ? String(token.name) : undefined,
+  };
+}
+
+export async function getSessionActorFromRequest(request: Request): Promise<SessionActor | null> {
   const token = readCookieValue(request.headers.get("cookie"), SESSION_COOKIE);
-  if (!token) return null;
-  return parseSessionToken(token);
+  if (token) {
+    const legacy = parseSessionToken(token);
+    if (legacy) return legacy;
+  }
+
+  return getSessionActorFromNextAuthCookie(request);
 }
 
 export async function getSessionActorFromServer(): Promise<SessionActor | null> {
   const store = await cookies();
   const token = store.get(SESSION_COOKIE)?.value;
-  if (!token) return null;
-  return parseSessionToken(token);
+  if (token) {
+    const legacy = parseSessionToken(token);
+    if (legacy) return legacy;
+  }
+
+  const session = await getServerSession(authOptions);
+  if (!session?.user?.id || !session.user.email) return null;
+  return {
+    userId: session.user.id,
+    role: (session.user.role as AuthRole) ?? "user",
+    email: session.user.email,
+    username: session.user.name ?? undefined,
+  };
 }

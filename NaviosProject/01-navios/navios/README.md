@@ -29,6 +29,7 @@ Default local DB:
 ```env
 DATABASE_URL="file:/tmp/navios-dev.db"
 AUTH_SECRET="change-this-secret"
+NEXTAUTH_SECRET="change-this-secret"
 AUTH_USERS_JSON='[{"id":"demo-user","email":"user@navios.local","password":"user1234","role":"user"},{"id":"demo-admin","email":"admin@navios.local","password":"admin1234","role":"admin"}]'
 ```
 
@@ -97,7 +98,7 @@ Request body:
 }
 ```
 
-- Requires logged-in session and stores `author_id = session.userId`.
+- Requires logged-in session and stores `author_id = session.user.id`.
 - `event_image` は `http/https` URL またはフォームアップロード由来の `data:image/...` を受け付けます。
 - `author_avatar_url` は省略時にログインユーザーのメールアドレスから自動生成されます。
 
@@ -127,11 +128,17 @@ UI behavior:
 
 ### Auth APIs
 
+- `GET/POST /api/auth/[...nextauth]` (Auth.js)
 - `POST /api/auth/login`
 - `POST /api/auth/logout`
 - `GET /api/auth/session`
 - `GET /api/auth/profile`
 - `PATCH /api/auth/profile` (`{ "username": "..." }`)
+
+Notes:
+
+- Login UI uses Auth.js Credentials (`signIn("credentials")`).
+- Legacy `/api/auth/login` cookie is kept for test/backward compatibility.
 
 ### `GET /api/geocode?q=鹿児島市`
 

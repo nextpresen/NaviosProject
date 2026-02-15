@@ -1,0 +1,86 @@
+import type { NextAuthOptions } from "next-auth";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { getUsername } from "@/lib/user-profile";
+
+type LegacyUser = {
+  id: string;
+  email: string;
+  password: string;
+  role: "user" | "admin";
+};
+
+export function getLegacyUsers(): LegacyUser[] {
+  const raw = process.env.AUTH_USERS_JSON;
+  if (raw) {
+    try {
+      const parsed = JSON.parse(raw) as LegacyUser[];
+      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+    } catch {
+      // fallback defaults
+    }
+  }
+
+  return [
+    { id: "demo-user", email: "user@navios.local", password: "user1234", role: "user" },
+    { id: "demo-user-2", email: "user2@navios.local", password: "user2234", role: "user" },
+    { id: "demo-admin", email: "admin@navios.local", password: "admin1234", role: "admin" },
+  ];
+}
+
+const authSecret =
+  process.env.NEXTAUTH_SECRET ?? process.env.AUTH_SECRET ?? "dev-navios-auth-secret";
+
+export const authOptions: NextAuthOptions = {
+  secret: authSecret,
+  providers: [
+    CredentialsProvider({
+      name: "credentials",
+      credentials: {
+        email: { label: "Email", type: "email" },
+        password: { label: "Password", type: "password" },
+      },
+      async authorize(credentials) {
+        const email = String(credentials?.email ?? "").trim().toLowerCase();
+        const password = String(credentials?.password ?? "");
+        if (!email || !password) return null;
+
+        const found = getLegacyUsers().find(
+          (user) => user.email.toLowerCase() === email && user.password === password,
+        );
+        if (!found) return null;
+
+        const username = await getUsername(found.id, found.email);
+
+        return {
+          id: found.id,
+          email: found.email,
+          name: username,
+          role: found.role,
+        };
+      },
+    }),
+  ],
+  pages: {
+    signIn: "/login",
+  },
+  session: {
+    strategy: "jwt",
+  },
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.role = (user as { role?: string }).role ?? "user";
+        token.name = user.name ?? token.name;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = String(token.sub ?? "");
+        session.user.role = String(token.role ?? "user");
+        session.user.name = token.name ?? session.user.name;
+      }
+      return session;
+    },
+  },
+};
