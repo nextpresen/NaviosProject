@@ -16,35 +16,37 @@ export function EventPopup({ id, title, content, imageUrl, dateText, daysText, s
   const textColor = status === "today" ? "text-pink-600" : status === "upcoming" ? "text-blue-600" : "text-slate-400";
 
   return (
-    <div className="max-w-full" style={{ width: "min(280px, calc(100vw - 96px))" }}>
-      <div className="relative">
-        <Image
-          src={imageUrl}
-          alt={title}
-          width={560}
-          height={300}
-          unoptimized
-          className="w-full h-[150px] object-contain bg-slate-100"
-        />
-        <StatusBadge status={status} className="absolute top-[10px] left-[10px]" />
-      </div>
-
-      <div className="p-4">
-        <p className="mb-1.5 text-[15px] font-bold text-slate-800 line-clamp-2">{title}</p>
-        <div className="flex items-center gap-2 mb-2">
-          <span className="text-xs text-slate-500">📅 {dateText}</span>
-          <span className={`text-[11px] font-bold ${textColor}`}>{daysText}</span>
+    <div className="max-w-full overflow-hidden rounded-xl border border-slate-200 bg-white" style={{ width: "min(350px, calc(100vw - 24px))", height: "96px" }}>
+      <div className="flex h-full">
+        <div className="relative w-[92px] flex-shrink-0 bg-slate-100">
+          <Image
+            src={imageUrl}
+            alt={title}
+            width={184}
+            height={192}
+            unoptimized
+            className="h-full w-full object-contain"
+          />
+          <StatusBadge status={status} className="absolute top-1.5 left-1.5 scale-[0.82] origin-top-left" />
         </div>
-        <p className="mb-3 text-xs text-slate-500 leading-relaxed line-clamp-3">{content}</p>
-        <Link
-          href={`/event/${id}`}
-          className="inline-flex items-center gap-1.5 no-underline bg-white hover:bg-slate-50 text-slate-900 text-xs font-bold px-3.5 py-2 rounded-[10px] border border-slate-300 transition shadow-sm"
-        >
-          詳細を見る
-          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-          </svg>
-        </Link>
+
+        <div className="flex min-w-0 flex-1 flex-col justify-between p-2.5">
+          <div className="min-w-0">
+            <p className="truncate text-[13px] font-bold text-slate-800">{title}</p>
+            <p className="mt-0.5 truncate text-[11px] text-slate-500">📅 {dateText}</p>
+            <p className={`mt-0.5 text-[10px] font-bold ${textColor}`}>{daysText}</p>
+          </div>
+
+          <div className="flex items-center justify-between gap-2">
+            <p className="truncate text-[10px] text-slate-500">{content}</p>
+            <Link
+              href={`/event/${id}`}
+              className="inline-flex flex-shrink-0 items-center rounded-md border border-slate-300 bg-white px-2 py-1 text-[10px] font-bold text-slate-900 hover:bg-slate-50"
+            >
+              詳細
+            </Link>
+          </div>
+        </div>
       </div>
     </div>
   );

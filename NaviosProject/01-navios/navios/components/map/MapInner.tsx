@@ -98,6 +98,67 @@ function MapActionsBridge({
   return null;
 }
 
+/**
+ * ポップアップが開いたときに地図をパンして全体が画面内に収まるようにする。
+ * Leaflet 組み込みの autoPan が先に走るので、その完了後（300ms 待機）に
+ * まだはみ出していれば追加パンで補正する。
+ */
+function PopupAutoFit() {
+  const map = useMap();
+
+  useEffect(() => {
+    const onPopupOpen = (e: L.PopupEvent) => {
+      const popup = e.popup;
+
+      // Leaflet の autoPan アニメーション完了を待ってから補正
+      setTimeout(() => {
+        const popupNode = popup.getElement();
+        if (!popupNode) return;
+
+        const rect = popupNode.getBoundingClientRect();
+        const mapRect = map.getContainer().getBoundingClientRect();
+
+        // ヘッダーやUI要素を考慮したパディング
+        const padTop = 80;     // ヘッダー分
+        const padBottom = 48;  // モバイル下部余白
+        const padLeft = 20;
+        const padRight = 20;
+
+        let dx = 0;
+        let dy = 0;
+
+        // 上にはみ出し
+        if (rect.top < mapRect.top + padTop) {
+          dy = rect.top - (mapRect.top + padTop);
+        }
+        // 下にはみ出し
+        if (rect.bottom > mapRect.bottom - padBottom) {
+          dy = rect.bottom - (mapRect.bottom - padBottom);
+        }
+        // 左にはみ出し
+        if (rect.left < mapRect.left + padLeft) {
+          dx = rect.left - (mapRect.left + padLeft);
+        }
+        // 右にはみ出し
+        if (rect.right > mapRect.right - padRight) {
+          dx = rect.right - (mapRect.right - padRight);
+        }
+
+        if (dx !== 0 || dy !== 0) {
+          map.panBy([dx, dy], { animate: true, duration: 0.25 });
+        }
+      }, 350);
+    };
+
+    map.on("popupopen", onPopupOpen);
+    return () => {
+      map.off("popupopen", onPopupOpen);
+    };
+  }, [map]);
+
+  return null;
+}
+
 function ViewportCenterBridge({
   onChange,
 }: {
@@ -150,6 +211,7 @@ export function MapInner({
   onViewportCenterChange,
 }: MapInnerProps) {
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
+  const markerRefs = useRef(new Map<string, L.Marker>());
 
   const center = useMemo<[number, number]>(() => {
     if (events.length > 0) {
@@ -189,6 +251,13 @@ export function MapInner({
     [],
   );
 
+  useEffect(() => {
+    if (!selectedEventId) return;
+    const marker = markerRefs.current.get(selectedEventId);
+    if (!marker) return;
+    marker.openPopup();
+  }, [selectedEventId]);
+
   return (
     <LeafletMapContainer center={center} zoom={14} zoomControl={false} className="w-full h-full">
       <TileLayer url={TILE_URL} maxZoom={20} attribution={TILE_ATTRIBUTION} />
@@ -203,14 +272,13 @@ export function MapInner({
       >
         {events.map((event) => {
           const status = getEventStatus(event);
-          const isSelected = selectedEventId === event.id;
           const avatarUrl =
             event.author_avatar_url ??
             (event.author_id
               ? `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(event.author_id)}`
               : null);
           const icon = L.divIcon({
-            html: buildMarkerHTML(status, event.category, avatarUrl, isSelected),
+            html: buildMarkerHTML(status, event.category, avatarUrl, false),
             className: "",
             ...markerSizeByStatus(status),
           });
@@ -221,15 +289,28 @@ export function MapInner({
               position={[event.latitude, event.longitude]}
               icon={icon}
               zIndexOffset={status === "today" ? 1200 : status === "upcoming" ? 200 : -200}
-              eventHandlers={{ click: () => onSelectEvent?.(event.id) }}
+              ref={(instance) => {
+                if (instance) {
+                  markerRefs.current.set(event.id, instance);
+                } else {
+                  markerRefs.current.delete(event.id);
+                }
+              }}
+              eventHandlers={{
+                click: (clickEvent) => {
+                  onSelectEvent?.(event.id);
+                  const marker = clickEvent.target as L.Marker;
+                  requestAnimationFrame(() => marker.openPopup());
+                },
+              }}
             >
               <Popup
-                maxWidth={320}
-                minWidth={180}
+                maxWidth={380}
+                minWidth={240}
                 autoPan
                 keepInView
-                autoPanPaddingTopLeft={[16, 16]}
-                autoPanPaddingBottomRight={[16, 24]}
+                autoPanPaddingTopLeft={[28, 116]}
+                autoPanPaddingBottomRight={[28, 132]}
               >
                 <EventPopup
                   id={event.id}
@@ -265,6 +346,7 @@ export function MapInner({
       <FlyToSelected events={events} selectedEventId={selectedEventId} />
       <MapActionsBridge events={events} onReady={onReady} onLocated={setCurrentLocation} />
       <ViewportCenterBridge onChange={onViewportCenterChange} />
+      <PopupAutoFit />
     </LeafletMapContainer>
   );
 }

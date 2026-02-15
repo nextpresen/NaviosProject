@@ -204,6 +204,13 @@ export default function HomePage() {
       ) : null}
 
       <style jsx global>{`
+        /* ポップアップが地図コンテナからはみ出しても見切れないようにする */
+        .leaflet-pane { overflow: visible !important; }
+        .leaflet-popup { z-index: 1100 !important; }
+        .leaflet-popup-content-wrapper { overflow: visible !important; border-radius: 12px !important; box-shadow: 0 8px 30px rgba(15,23,42,.18) !important; }
+        .leaflet-popup-content { margin: 0 !important; padding: 0 !important; }
+        .leaflet-popup-tip-container { z-index: 1100; }
+
         .custom-scroll::-webkit-scrollbar { width: 5px; }
         .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
         .post-card { transition: transform .22s ease, box-shadow .22s ease; }
