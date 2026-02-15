@@ -3,22 +3,31 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, MouseEvent, useEffect, useMemo, useState } from "react";
 import { PostLocationPicker } from "@/components/map/PostLocationPicker";
 import { SearchInput, type SearchResultItem } from "@/components/search/SearchInput";
+import { EVENT_CATEGORY_OPTIONS, EVENT_TAG_OPTIONS } from "@/lib/event-taxonomy";
 import { useGeocode } from "@/hooks/useGeocode";
-import type { Event, EventCategory } from "@/types/event";
+import type { Event, EventCategory, EventTag } from "@/types/event";
 
 type FormState = {
   title: string;
   content: string;
   category: EventCategory;
+  tags: EventTag[];
   latitude: string;
   longitude: string;
   event_date: string;
   expire_date: string;
   event_image: string;
 };
+
+function serializeFormState(form: FormState) {
+  return JSON.stringify({
+    ...form,
+    tags: [...form.tags].sort(),
+  });
+}
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
@@ -95,17 +104,19 @@ export default function NewEventPage() {
   const today = useMemo(() => todayIso(), []);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [canPost, setCanPost] = useState(false);
-
-  const [form, setForm] = useState<FormState>({
+  const initialForm = useMemo<FormState>(() => ({
     title: "",
     content: "",
-    category: "other",
+    category: "event",
+    tags: [],
     latitude: "31.57371",
     longitude: "130.345154",
     event_date: today,
     expire_date: today,
     event_image: "https://placehold.co/1200x800/2a91ff/ffffff?text=Navios+Event",
-  });
+  }), [today]);
+  const [form, setForm] = useState<FormState>(initialForm);
+  const [initialFormSnapshot, setInitialFormSnapshot] = useState(() => serializeFormState(initialForm));
 
   const [submitting, setSubmitting] = useState(false);
   const [loadingExisting, setLoadingExisting] = useState(false);
@@ -115,6 +126,10 @@ export default function NewEventPage() {
   const [addressQuery, setAddressQuery] = useState("");
   const [showAddressResults, setShowAddressResults] = useState(false);
   const { results: geocodeResults, loading: geocodeLoading } = useGeocode(addressQuery);
+  const isDirty = useMemo(
+    () => serializeFormState(form) !== initialFormSnapshot,
+    [form, initialFormSnapshot],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -177,12 +192,15 @@ export default function NewEventPage() {
         }
 
         if (!cancelled) {
-          setForm({
+          const loadedForm: FormState = {
             ...event,
-            category: event.category ?? "other",
+            category: event.category ?? "event",
+            tags: event.tags ?? [],
             latitude: String(event.latitude),
             longitude: String(event.longitude),
-          });
+          };
+          setForm(loadedForm);
+          setInitialFormSnapshot(serializeFormState(loadedForm));
         }
       } catch (err) {
         if (!cancelled) {
@@ -201,8 +219,43 @@ export default function NewEventPage() {
     };
   }, [editingId]);
 
+  useEffect(() => {
+    if (editingId) return;
+    setInitialFormSnapshot(serializeFormState(initialForm));
+  }, [editingId, initialForm]);
+
+  useEffect(() => {
+    const onBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (!isDirty) return;
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", onBeforeUnload);
+    return () => window.removeEventListener("beforeunload", onBeforeUnload);
+  }, [isDirty]);
+
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const handleBackToHome = (event: MouseEvent<HTMLButtonElement>) => {
+    event.preventDefault();
+    if (isDirty) {
+      const confirmed = window.confirm("変更を破棄して戻りますか？");
+      if (!confirmed) return;
+    }
+    router.push("/");
+  };
+
+  const toggleTag = (tag: EventTag) => {
+    setForm((prev) => {
+      const exists = prev.tags.includes(tag);
+      if (exists) {
+        return { ...prev, tags: prev.tags.filter((item) => item !== tag) };
+      }
+      if (prev.tags.length >= 3) return prev;
+      return { ...prev, tags: [...prev.tags, tag] };
+    });
   };
 
   const mapLatitude = toCoordinate(form.latitude, -90, 90) ?? 31.57371;
@@ -282,6 +335,7 @@ export default function NewEventPage() {
           title: form.title,
           content: form.content,
           category: form.category,
+          tags: form.tags,
           latitude: Number(form.latitude),
           longitude: Number(form.longitude),
           event_date: form.event_date,
@@ -335,12 +389,13 @@ export default function NewEventPage() {
               {isEdit ? "イベント情報を更新します。" : "イベント情報を入力して公開します。"}
             </p>
           </div>
-          <Link
-            href="/"
+          <button
+            type="button"
+            onClick={handleBackToHome}
             className="inline-flex items-center rounded-xl border border-slate-300 bg-white text-slate-700 text-sm font-semibold px-3.5 py-2 hover:bg-slate-50"
           >
             トップへ戻る
-          </Link>
+          </button>
         </div>
 
         {checkingAuth ? (
@@ -396,13 +451,39 @@ export default function NewEventPage() {
               onChange={(e) => update("category", e.target.value as EventCategory)}
               className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
             >
-              <option value="other">その他</option>
-              <option value="festival">祭り</option>
-              <option value="gourmet">グルメ</option>
-              <option value="nature">自然</option>
-              <option value="culture">文化</option>
+              {EVENT_CATEGORY_OPTIONS.map((option) => (
+                <option key={option.value} value={option.value}>
+                  {option.label}
+                </option>
+              ))}
             </select>
           </label>
+
+          <div className="block">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-slate-700">タグ（最大3つ）</span>
+              <span className="text-[11px] font-semibold text-slate-500">{form.tags.length}/3</span>
+            </div>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {EVENT_TAG_OPTIONS.map((option) => {
+                const selected = form.tags.includes(option.value);
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => toggleTag(option.value)}
+                    className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                      selected
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                        : "border-slate-300 bg-white text-slate-600 hover:bg-slate-50"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
 
           <div className="block">
             <span className="text-sm font-semibold text-slate-700">位置選択ミニマップ</span>

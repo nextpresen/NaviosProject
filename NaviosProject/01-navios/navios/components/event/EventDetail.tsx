@@ -1,18 +1,33 @@
 import Image from "next/image";
+import { getCategoryMeta, getTagLabel } from "@/lib/event-taxonomy";
+import type { EventCategory, EventTag } from "@/types/event";
 import { StatusBadge, type EventStatus } from "../ui/StatusBadge";
 
 interface EventDetailProps {
   id: string;
   title: string;
   content: string;
+  category: EventCategory;
+  tags: EventTag[];
   imageUrl: string;
   dateText: string;
   daysText: string;
   status: EventStatus;
 }
 
-export function EventDetail({ id, title, content, imageUrl, dateText, daysText, status }: EventDetailProps) {
+export function EventDetail({
+  id,
+  title,
+  content,
+  category,
+  tags,
+  imageUrl,
+  dateText,
+  daysText,
+  status,
+}: EventDetailProps) {
   const textColor = status === "today" ? "text-pink-600" : status === "upcoming" ? "text-blue-600" : "text-slate-400";
+  const categoryMeta = getCategoryMeta(category);
 
   return (
     <article data-id={id} className="max-w-3xl mx-auto px-4 py-6">
@@ -32,6 +47,21 @@ export function EventDetail({ id, title, content, imageUrl, dateText, daysText, 
       </div>
 
       <h1 className="text-2xl font-extrabold text-slate-900 mb-3">{title}</h1>
+
+      <div className="flex flex-wrap items-center gap-2 mb-4">
+        <span className="inline-flex items-center gap-1 rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs font-semibold text-slate-700">
+          <span>{categoryMeta.icon}</span>
+          <span>{categoryMeta.label}</span>
+        </span>
+        {tags.map((tag) => (
+          <span
+            key={tag}
+            className="inline-flex items-center rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+          >
+            {getTagLabel(tag)}
+          </span>
+        ))}
+      </div>
 
       <div className="flex items-center gap-2 mb-4 text-slate-500">
         <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">

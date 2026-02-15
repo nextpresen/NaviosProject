@@ -130,7 +130,7 @@ export default function HomePage() {
             today: counts.today,
             upcoming: counts.upcoming,
           }}
-          mobileCount={filteredEvents.length}
+          mobileLiveNowCount={counts.today}
           events={filteredEvents}
           selectedEventId={selectedEventId}
           onSelectEvent={handleSelectEventFromMap}

@@ -3,10 +3,17 @@ import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
 import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
 import { getEventStatus } from "@/lib/event-status";
+import {
+  EVENT_CATEGORY_VALUES,
+  EVENT_TAG_VALUES,
+  type Event,
+  type EventFilter,
+  type EventTag,
+} from "@/types/event";
+import { parseTagsJSON, stringifyTagsJSON, toSafeCategory } from "@/lib/event-taxonomy";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
 import { getUserProfile } from "@/lib/user-profile";
-import type { Event, EventCategory, EventFilter } from "@/types/event";
 
 const statusSchema = z.enum(["all", "today", "upcoming", "ended"]);
 const querySchema = z.object({
@@ -36,7 +43,8 @@ const imageSchema = z
 const eventCreateSchema = z.object({
   title: z.string().trim().min(1).max(120),
   content: z.string().trim().min(1).max(5000),
-  category: z.enum(["festival", "gourmet", "nature", "culture", "other"]).optional(),
+  category: z.enum(EVENT_CATEGORY_VALUES).optional(),
+  tags: z.array(z.enum(EVENT_TAG_VALUES)).max(3).optional(),
   author_avatar_url: z.string().url().max(2048).optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
@@ -57,6 +65,7 @@ function toEvent(input: {
   event_date: Date;
   expire_date: Date;
   event_image: string;
+  tags_json: string;
 }): Event {
   return {
     id: input.id,
@@ -64,12 +73,13 @@ function toEvent(input: {
     content: input.content,
     author_id: input.author_id,
     author_avatar_url: input.author_avatar_url,
-    category: (input.category as EventCategory) ?? "other",
+    category: toSafeCategory(input.category),
     latitude: input.latitude,
     longitude: input.longitude,
     event_date: input.event_date.toISOString().slice(0, 10),
     expire_date: input.expire_date.toISOString().slice(0, 10),
     event_image: input.event_image,
+    tags: parseTagsJSON(input.tags_json),
   };
 }
 
@@ -200,12 +210,13 @@ export async function POST(request: Request) {
         author_id: actor.userId,
         author_avatar_url:
           payload.author_avatar_url ?? profile.avatar_url ?? fallbackAvatarFromEmail(actor.email),
-        category: payload.category ?? "other",
+        category: payload.category ?? "event",
         latitude: payload.latitude,
         longitude: payload.longitude,
         event_date: new Date(payload.event_date),
         expire_date: new Date(payload.expire_date),
         event_image: payload.event_image,
+        tags_json: stringifyTagsJSON(payload.tags as EventTag[] | undefined),
       },
     });
 

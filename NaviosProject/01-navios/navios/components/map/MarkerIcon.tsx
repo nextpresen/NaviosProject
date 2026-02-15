@@ -1,13 +1,6 @@
 import type { EventStatus } from "../ui/StatusBadge";
 import type { EventCategory } from "@/types/event";
-
-const CATEGORY_CONFIG: Record<EventCategory, { icon: string; color: string; label: string }> = {
-  festival: { icon: "🎉", color: "#ef4444", label: "祭り" },
-  gourmet: { icon: "🍽", color: "#f97316", label: "グルメ" },
-  nature: { icon: "🌿", color: "#16a34a", label: "自然" },
-  culture: { icon: "🏮", color: "#8b5cf6", label: "文化" },
-  other: { icon: "🏷", color: "#64748b", label: "その他" },
-};
+import { getCategoryMeta } from "@/lib/event-taxonomy";
 
 const PIN_CONFIG = {
   today: { pinClass: "pin-today", short: "LIVE NOW" },
@@ -26,7 +19,7 @@ export function buildMarkerHTML(
   isSelected = false,
 ) {
   const cfg = PIN_CONFIG[status];
-  const categoryConfig = CATEGORY_CONFIG[category] ?? CATEGORY_CONFIG.other;
+  const categoryConfig = getCategoryMeta(category);
   const safeCategoryLabel = escapeAttr(categoryConfig.label);
   const safeAvatar = authorAvatarUrl ? escapeAttr(authorAvatarUrl) : "";
 

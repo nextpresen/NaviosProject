@@ -13,7 +13,8 @@ model Event {
   content           String
   author_id         String?
   author_avatar_url String?
-  category          String   @default("other")
+  category          String   @default("event")
+  tags_json         String   @default("[]")
   latitude          Float
   longitude         Float
   event_date        DateTime

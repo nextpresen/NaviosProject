@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { EventActions } from "@/components/event/EventActions";
 import { getSessionActorFromServer } from "@/lib/auth-session";
 import { canManageEvent } from "@/lib/authz";
+import { parseTagsJSON, toSafeCategory } from "@/lib/event-taxonomy";
 import { EventDetail } from "@/components/event/EventDetail";
 import { daysUntilText, formatDateRange, getEventStatus } from "@/lib/event-status";
 import { MOCK_EVENTS } from "@/lib/mock-events";
@@ -21,6 +22,7 @@ function toEvent(input: {
   event_date: Date;
   expire_date: Date;
   event_image: string;
+  tags_json: string;
 }): Event {
   return {
     id: input.id,
@@ -28,12 +30,13 @@ function toEvent(input: {
     content: input.content,
     author_id: input.author_id,
     author_avatar_url: input.author_avatar_url,
-    category: input.category as Event["category"],
+    category: toSafeCategory(input.category),
     latitude: input.latitude,
     longitude: input.longitude,
     event_date: input.event_date.toISOString().slice(0, 10),
     expire_date: input.expire_date.toISOString().slice(0, 10),
     event_image: input.event_image,
+    tags: parseTagsJSON(input.tags_json),
   };
 }
 
@@ -75,6 +78,8 @@ export default async function EventDetailPage({
         id={event.id}
         title={event.title}
         content={event.content}
+        category={event.category}
+        tags={event.tags}
         imageUrl={event.event_image}
         dateText={formatDateRange(event.event_date, event.expire_date)}
         daysText={daysUntilText(event)}

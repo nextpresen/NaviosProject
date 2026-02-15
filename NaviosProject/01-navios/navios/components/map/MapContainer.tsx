@@ -18,7 +18,7 @@ interface MapContainerProps {
     today: number;
     upcoming: number;
   };
-  mobileCount: number;
+  mobileLiveNowCount: number;
   events: Event[];
   selectedEventId: string | null;
   onSelectEvent?: (id: string) => void;
@@ -27,7 +27,7 @@ interface MapContainerProps {
 export function MapContainer({
   areaName = "日置市周辺",
   stats,
-  mobileCount,
+  mobileLiveNowCount,
   events,
   selectedEventId,
   onSelectEvent,
@@ -105,7 +105,7 @@ export function MapContainer({
         onClickMyLocation={() => actions?.locateMe()}
         onClickResetView={() => actions?.resetView()}
       />
-      <SpotBadge count={mobileCount} />
+      <SpotBadge liveNowCount={mobileLiveNowCount} />
     </section>
   );
 }
