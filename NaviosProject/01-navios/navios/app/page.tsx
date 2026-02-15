@@ -13,7 +13,7 @@ import type { SearchResultItem } from "@/components/search/SearchInput";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useEvents } from "@/hooks/useEvents";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
-import { daysUntilText, formatDateRange, getEventStatus } from "@/lib/event-status";
+import { daysUntilText, formatEventSchedule, getEventStatus } from "@/lib/event-status";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { useAppStore } from "@/store/useAppStore";
 import type { Event } from "@/types/event";
@@ -71,7 +71,7 @@ export default function HomePage() {
         ...event,
         status: getEventStatus(event),
         daysText: daysUntilText(event),
-        dateRangeText: formatDateRange(event.event_date, event.expire_date),
+        dateRangeText: formatEventSchedule(event),
       })),
     [filteredEvents],
   );
@@ -167,7 +167,7 @@ export default function HomePage() {
                 {selectedEvent.title}
               </h3>
               <p className="mt-1 text-xs text-slate-500">
-                📅 {formatDateRange(selectedEvent.event_date, selectedEvent.expire_date)}
+                📅 {formatEventSchedule(selectedEvent)}
               </p>
               <p className="mt-2 text-xs text-slate-600 leading-relaxed line-clamp-3">
                 {selectedEvent.content}

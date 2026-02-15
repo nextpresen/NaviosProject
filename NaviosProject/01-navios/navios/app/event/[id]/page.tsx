@@ -5,7 +5,7 @@ import { getSessionActorFromServer } from "@/lib/auth-session";
 import { canManageEvent } from "@/lib/authz";
 import { parseTagsJSON, toSafeCategory } from "@/lib/event-taxonomy";
 import { EventDetail } from "@/components/event/EventDetail";
-import { daysUntilText, formatDateRange, getEventStatus } from "@/lib/event-status";
+import { daysUntilText, formatEventSchedule, getEventStatus } from "@/lib/event-status";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
 import type { Event } from "@/types/event";
@@ -19,11 +19,16 @@ function toEvent(input: {
   category: string;
   latitude: number;
   longitude: number;
+  start_at: Date | null;
+  end_at: Date | null;
+  is_all_day: boolean;
   event_date: Date;
   expire_date: Date;
   event_image: string;
   tags_json: string;
 }): Event {
+  const startAt = input.start_at ?? new Date(`${input.event_date.toISOString().slice(0, 10)}T00:00:00.000Z`);
+  const endAt = input.end_at ?? new Date(`${input.expire_date.toISOString().slice(0, 10)}T23:59:59.000Z`);
   return {
     id: input.id,
     title: input.title,
@@ -33,6 +38,9 @@ function toEvent(input: {
     category: toSafeCategory(input.category),
     latitude: input.latitude,
     longitude: input.longitude,
+    start_at: startAt.toISOString(),
+    end_at: endAt.toISOString(),
+    is_all_day: input.is_all_day ?? false,
     event_date: input.event_date.toISOString().slice(0, 10),
     expire_date: input.expire_date.toISOString().slice(0, 10),
     event_image: input.event_image,
@@ -81,7 +89,7 @@ export default async function EventDetailPage({
         category={event.category}
         tags={event.tags}
         imageUrl={event.event_image}
-        dateText={formatDateRange(event.event_date, event.expire_date)}
+        dateText={formatEventSchedule(event)}
         daysText={daysUntilText(event)}
         status={getEventStatus(event)}
       />

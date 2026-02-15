@@ -5,7 +5,7 @@ import L from "leaflet";
 import { CircleMarker, MapContainer as LeafletMapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import type { Event } from "@/types/event";
 import { TILE_ATTRIBUTION, TILE_URL } from "@/lib/constants";
-import { daysUntilText, formatDateRange, getEventStatus } from "@/lib/event-status";
+import { daysUntilText, formatEventSchedule, getEventStatus } from "@/lib/event-status";
 import { EventPopup } from "../event/EventPopup";
 import { buildMarkerHTML, markerSizeByStatus } from "./MarkerIcon";
 
@@ -196,7 +196,7 @@ export function MapInner({
                 title={event.title}
                 content={event.content}
                 imageUrl={event.event_image}
-                dateText={formatDateRange(event.event_date, event.expire_date)}
+                dateText={formatEventSchedule(event)}
                 daysText={daysUntilText(event)}
                 status={status}
               />

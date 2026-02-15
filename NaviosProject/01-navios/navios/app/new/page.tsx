@@ -17,6 +17,9 @@ type FormState = {
   tags: EventTag[];
   latitude: string;
   longitude: string;
+  start_at: string;
+  end_at: string;
+  is_all_day: boolean;
   event_date: string;
   expire_date: string;
   event_image: string;
@@ -31,6 +34,20 @@ function serializeFormState(form: FormState) {
 
 function todayIso() {
   return new Date().toISOString().slice(0, 10);
+}
+
+function toDateTimeLocalInput(value: string | Date) {
+  const date = typeof value === "string" ? new Date(value) : value;
+  const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60000);
+  return localDate.toISOString().slice(0, 16);
+}
+
+function dateFromDateTimeLocal(value: string) {
+  return value.slice(0, 10);
+}
+
+function withTime(date: string, time: string) {
+  return `${date}T${time}`;
 }
 
 function toCoordinate(value: string, min: number, max: number) {
@@ -102,6 +119,8 @@ export default function NewEventPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const isEdit = Boolean(editingId);
   const today = useMemo(() => todayIso(), []);
+  const defaultStartAt = useMemo(() => withTime(today, "09:00"), [today]);
+  const defaultEndAt = useMemo(() => withTime(today, "18:00"), [today]);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [canPost, setCanPost] = useState(false);
   const initialForm = useMemo<FormState>(() => ({
@@ -111,10 +130,13 @@ export default function NewEventPage() {
     tags: [],
     latitude: "31.57371",
     longitude: "130.345154",
+    start_at: defaultStartAt,
+    end_at: defaultEndAt,
+    is_all_day: false,
     event_date: today,
     expire_date: today,
     event_image: "https://placehold.co/1200x800/2a91ff/ffffff?text=Navios+Event",
-  }), [today]);
+  }), [defaultEndAt, defaultStartAt, today]);
   const [form, setForm] = useState<FormState>(initialForm);
   const [initialFormSnapshot, setInitialFormSnapshot] = useState(() => serializeFormState(initialForm));
 
@@ -192,10 +214,17 @@ export default function NewEventPage() {
         }
 
         if (!cancelled) {
+          const startAt = event.start_at ? toDateTimeLocalInput(event.start_at) : withTime(event.event_date, "09:00");
+          const endAt = event.end_at ? toDateTimeLocalInput(event.end_at) : withTime(event.expire_date, "18:00");
           const loadedForm: FormState = {
             ...event,
             category: event.category ?? "event",
             tags: event.tags ?? [],
+            start_at: startAt,
+            end_at: endAt,
+            is_all_day: event.is_all_day ?? false,
+            event_date: dateFromDateTimeLocal(startAt),
+            expire_date: dateFromDateTimeLocal(endAt),
             latitude: String(event.latitude),
             longitude: String(event.longitude),
           };
@@ -236,6 +265,40 @@ export default function NewEventPage() {
 
   const update = <K extends keyof FormState>(key: K, value: FormState[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
+  };
+
+  const updateStartAt = (value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      start_at: value,
+      event_date: dateFromDateTimeLocal(value),
+    }));
+  };
+
+  const updateEndAt = (value: string) => {
+    setForm((prev) => ({
+      ...prev,
+      end_at: value,
+      expire_date: dateFromDateTimeLocal(value),
+    }));
+  };
+
+  const toggleAllDay = (checked: boolean) => {
+    setForm((prev) => {
+      if (!checked) {
+        return { ...prev, is_all_day: false };
+      }
+      const startDate = dateFromDateTimeLocal(prev.start_at);
+      const endDate = dateFromDateTimeLocal(prev.end_at);
+      return {
+        ...prev,
+        is_all_day: true,
+        start_at: withTime(startDate, "00:00"),
+        end_at: withTime(endDate, "23:59"),
+        event_date: startDate,
+        expire_date: endDate,
+      };
+    });
   };
 
   const handleBackToHome = (event: MouseEvent<HTMLButtonElement>) => {
@@ -327,6 +390,25 @@ export default function NewEventPage() {
     setError(null);
     setSubmitting(true);
 
+    const startAtDate = new Date(form.start_at);
+    const endAtDate = new Date(form.end_at);
+    if (Number.isNaN(startAtDate.getTime()) || Number.isNaN(endAtDate.getTime())) {
+      setError("開始日時と終了日時を正しく入力してください。");
+      setSubmitting(false);
+      return;
+    }
+
+    const startAtIso = startAtDate.toISOString();
+    const endAtIso = endAtDate.toISOString();
+    const eventDate = dateFromDateTimeLocal(form.start_at);
+    const expireDate = dateFromDateTimeLocal(form.end_at);
+
+    if (endAtDate < startAtDate) {
+      setError("終了日時は開始日時より後にしてください。");
+      setSubmitting(false);
+      return;
+    }
+
     try {
       const response = await fetch(isEdit ? `/api/events/${editingId}` : "/api/events", {
         method: isEdit ? "PUT" : "POST",
@@ -336,10 +418,13 @@ export default function NewEventPage() {
           content: form.content,
           category: form.category,
           tags: form.tags,
+          start_at: startAtIso,
+          end_at: endAtIso,
+          is_all_day: form.is_all_day,
           latitude: Number(form.latitude),
           longitude: Number(form.longitude),
-          event_date: form.event_date,
-          expire_date: form.expire_date,
+          event_date: eventDate,
+          expire_date: expireDate,
           event_image: form.event_image,
         }),
       });
@@ -553,43 +638,60 @@ export default function NewEventPage() {
             </div>
           </details>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <label className="block">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-sm font-semibold text-slate-700">開始日</span>
-                <button
-                  type="button"
-                  onClick={() => {
-                    update("event_date", today);
-                    update("expire_date", today);
-                  }}
-                  className="inline-flex items-center rounded-lg border border-pink-200 bg-pink-50 px-2.5 py-1 text-[11px] font-bold text-pink-700 hover:bg-pink-100"
-                >
-                  今日開催にする
-                </button>
-              </div>
+          <div className="space-y-3 rounded-xl border border-slate-200 bg-slate-50/60 p-3">
+            <div className="flex items-center justify-between gap-2">
+              <span className="text-sm font-semibold text-slate-700">開催日時</span>
+              <button
+                type="button"
+                onClick={() => {
+                  updateStartAt(withTime(today, "09:00"));
+                  updateEndAt(withTime(today, "18:00"));
+                  toggleAllDay(false);
+                }}
+                className="inline-flex items-center rounded-lg border border-pink-200 bg-pink-50 px-2.5 py-1 text-[11px] font-bold text-pink-700 hover:bg-pink-100"
+              >
+                今日の営業時間にする
+              </button>
+            </div>
+
+            <label className="inline-flex items-center gap-2 text-sm text-slate-700">
               <input
-                required
-                type="date"
-                value={form.event_date}
-                onChange={(e) => update("event_date", e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
+                type="checkbox"
+                checked={form.is_all_day}
+                onChange={(e) => toggleAllDay(e.target.checked)}
+                className="h-4 w-4 rounded border-slate-300"
               />
+              終日イベント
             </label>
-            <label className="block">
-              <span className="text-sm font-semibold text-slate-700">終了日</span>
-              <input
-                required
-                type="date"
-                value={form.expire_date}
-                onChange={(e) => update("expire_date", e.target.value)}
-                className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30"
-              />
-            </label>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">開始日時</span>
+                <input
+                  required
+                  type="datetime-local"
+                  value={form.start_at}
+                  onChange={(e) => updateStartAt(e.target.value)}
+                  disabled={form.is_all_day}
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:bg-slate-100 disabled:text-slate-500"
+                />
+              </label>
+              <label className="block">
+                <span className="text-sm font-semibold text-slate-700">終了日時</span>
+                <input
+                  required
+                  type="datetime-local"
+                  value={form.end_at}
+                  onChange={(e) => updateEndAt(e.target.value)}
+                  disabled={form.is_all_day}
+                  className="mt-1.5 w-full rounded-xl border border-slate-300 px-3 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-brand-500/30 disabled:bg-slate-100 disabled:text-slate-500"
+                />
+              </label>
+            </div>
+            <p className="text-xs text-slate-500">
+              終日イベントをONにすると、開始 00:00 / 終了 23:59 として保存されます。
+            </p>
           </div>
-          <p className="text-xs text-slate-500">
-            今日だけ開催する場合は「今日開催にする」を使うと開始日/終了日が同時に設定されます。
-          </p>
 
           <label className="block">
             <span className="text-sm font-semibold text-slate-700">画像アップロード</span>

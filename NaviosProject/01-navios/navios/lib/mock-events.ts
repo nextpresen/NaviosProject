@@ -6,6 +6,13 @@ function isoDate(offsetDays = 0) {
   return date.toISOString().slice(0, 10);
 }
 
+function isoDateTime(offsetDays: number, hour: number, minute = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + offsetDays);
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
+}
+
 export const MOCK_EVENTS: Event[] = [
   {
     id: "evt-001",
@@ -17,6 +24,9 @@ export const MOCK_EVENTS: Event[] = [
     tags: ["go_now"],
     latitude: 31.5745,
     longitude: 130.3418,
+    start_at: isoDateTime(0, 10, 0),
+    end_at: isoDateTime(0, 17, 0),
+    is_all_day: false,
     event_date: isoDate(0),
     expire_date: isoDate(0),
     event_image: "https://placehold.co/800x480/f59e0b/ffffff?text=Spring+Festival",
@@ -31,6 +41,9 @@ export const MOCK_EVENTS: Event[] = [
     tags: ["go_now"],
     latitude: 31.57371,
     longitude: 130.345154,
+    start_at: isoDateTime(0, 16, 0),
+    end_at: isoDateTime(0, 19, 0),
+    is_all_day: false,
     event_date: isoDate(0),
     expire_date: isoDate(0),
     event_image: "https://placehold.co/800x480/ef4444/ffffff?text=Photo+Walk",
@@ -45,6 +58,9 @@ export const MOCK_EVENTS: Event[] = [
     tags: ["under_1000"],
     latitude: 31.5751,
     longitude: 130.348,
+    start_at: isoDateTime(2, 11, 30),
+    end_at: isoDateTime(2, 14, 0),
+    is_all_day: false,
     event_date: isoDate(2),
     expire_date: isoDate(2),
     event_image: "https://placehold.co/800x480/22c55e/ffffff?text=Special+Lunch",
@@ -59,6 +75,9 @@ export const MOCK_EVENTS: Event[] = [
     tags: [],
     latitude: 31.5718,
     longitude: 130.343,
+    start_at: isoDateTime(5, 19, 0),
+    end_at: isoDateTime(5, 21, 30),
+    is_all_day: false,
     event_date: isoDate(5),
     expire_date: isoDate(5),
     event_image: "https://placehold.co/800x480/6366f1/ffffff?text=Night+Hike",
@@ -73,6 +92,9 @@ export const MOCK_EVENTS: Event[] = [
     tags: ["free"],
     latitude: 31.5722,
     longitude: 130.3465,
+    start_at: isoDateTime(-3, 0, 0),
+    end_at: isoDateTime(-1, 23, 59),
+    is_all_day: true,
     event_date: isoDate(-3),
     expire_date: isoDate(-1),
     event_image: "https://placehold.co/800x480/ec4899/ffffff?text=Sakura+Light",
@@ -87,6 +109,9 @@ export const MOCK_EVENTS: Event[] = [
     tags: ["under_1000", "go_now"],
     latitude: 31.576,
     longitude: 130.3502,
+    start_at: isoDateTime(-10, 6, 0),
+    end_at: isoDateTime(-10, 10, 0),
+    is_all_day: false,
     event_date: isoDate(-10),
     expire_date: isoDate(-10),
     event_image: "https://placehold.co/800x480/f97316/ffffff?text=Seafood+BBQ",

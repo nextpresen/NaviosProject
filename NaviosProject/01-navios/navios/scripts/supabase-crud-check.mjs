@@ -6,6 +6,13 @@ function day(offset = 0) {
   return date;
 }
 
+function dayTime(offset = 0, hour = 9, minute = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  date.setHours(hour, minute, 0, 0);
+  return date;
+}
+
 async function main() {
   const prisma = new PrismaClient();
   const stamp = Date.now();
@@ -17,6 +24,9 @@ async function main() {
       content: "supabase rehearsal",
       latitude: 31.57371,
       longitude: 130.345154,
+      start_at: dayTime(1, 10, 0),
+      end_at: dayTime(2, 18, 0),
+      is_all_day: false,
       event_date: day(1),
       expire_date: day(2),
       event_image: "https://placehold.co/1200x800/16a34a/ffffff?text=Supabase",

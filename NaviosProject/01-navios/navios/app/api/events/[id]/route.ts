@@ -38,11 +38,14 @@ const eventUpdateSchema = z.object({
   content: z.string().trim().min(1).max(5000),
   category: z.enum(EVENT_CATEGORY_VALUES).optional(),
   tags: z.array(z.enum(EVENT_TAG_VALUES)).max(3).optional(),
+  start_at: z.string().datetime().optional(),
+  end_at: z.string().datetime().optional(),
+  is_all_day: z.boolean().optional(),
   author_avatar_url: z.string().url().max(2048).optional(),
   latitude: z.number().min(-90).max(90),
   longitude: z.number().min(-180).max(180),
-  event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
-  expire_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
+  event_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
+  expire_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional(),
   event_image: imageSchema,
 });
 
@@ -55,11 +58,16 @@ function toEvent(input: {
   category: string;
   latitude: number;
   longitude: number;
+  start_at: Date | null;
+  end_at: Date | null;
+  is_all_day: boolean;
   event_date: Date;
   expire_date: Date;
   event_image: string;
   tags_json: string;
 }): Event {
+  const startAt = input.start_at ?? new Date(`${input.event_date.toISOString().slice(0, 10)}T00:00:00.000Z`);
+  const endAt = input.end_at ?? new Date(`${input.expire_date.toISOString().slice(0, 10)}T23:59:59.000Z`);
   return {
     id: input.id,
     title: input.title,
@@ -69,11 +77,35 @@ function toEvent(input: {
     category: toSafeCategory(input.category),
     latitude: input.latitude,
     longitude: input.longitude,
+    start_at: startAt.toISOString(),
+    end_at: endAt.toISOString(),
+    is_all_day: input.is_all_day ?? false,
     event_date: input.event_date.toISOString().slice(0, 10),
     expire_date: input.expire_date.toISOString().slice(0, 10),
     event_image: input.event_image,
     tags: parseTagsJSON(input.tags_json),
   };
+}
+
+function resolveSchedule(payload: z.infer<typeof eventUpdateSchema>) {
+  let startAt = payload.start_at ? new Date(payload.start_at) : null;
+  let endAt = payload.end_at ? new Date(payload.end_at) : null;
+
+  if (!startAt && payload.event_date) startAt = new Date(`${payload.event_date}T00:00:00.000Z`);
+  if (!endAt && payload.expire_date) endAt = new Date(`${payload.expire_date}T23:59:59.000Z`);
+
+  if (!startAt || !endAt || Number.isNaN(startAt.getTime()) || Number.isNaN(endAt.getTime())) {
+    return null;
+  }
+
+  if (payload.is_all_day) {
+    const startDate = startAt.toISOString().slice(0, 10);
+    const endDate = endAt.toISOString().slice(0, 10);
+    startAt = new Date(`${startDate}T00:00:00.000Z`);
+    endAt = new Date(`${endDate}T23:59:59.000Z`);
+  }
+
+  return { startAt, endAt };
 }
 
 export async function GET(
@@ -137,10 +169,20 @@ export async function PUT(
   }
 
   const payload = parsedBody.data;
-  if (payload.expire_date < payload.event_date) {
+  const schedule = resolveSchedule(payload);
+  if (!schedule) {
     return NextResponse.json(
       fail("VALIDATION_ERROR", "Invalid payload", {
-        expire_date: ["expire_date must be >= event_date"],
+        start_at: ["start_at and end_at are required"],
+      }),
+      { status: 400 },
+    );
+  }
+
+  if (schedule.endAt < schedule.startAt) {
+    return NextResponse.json(
+      fail("VALIDATION_ERROR", "Invalid payload", {
+        end_at: ["end_at must be >= start_at"],
       }),
       { status: 400 },
     );
@@ -171,8 +213,11 @@ export async function PUT(
         author_avatar_url: payload.author_avatar_url,
         latitude: payload.latitude,
         longitude: payload.longitude,
-        event_date: new Date(payload.event_date),
-        expire_date: new Date(payload.expire_date),
+        start_at: schedule.startAt,
+        end_at: schedule.endAt,
+        is_all_day: payload.is_all_day ?? false,
+        event_date: new Date(schedule.startAt.toISOString().slice(0, 10)),
+        expire_date: new Date(schedule.endAt.toISOString().slice(0, 10)),
         event_image: payload.event_image,
       },
     });

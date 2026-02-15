@@ -26,6 +26,9 @@ export interface Event {
   category: EventCategory;
   latitude: number;
   longitude: number;
+  start_at: string;
+  end_at: string;
+  is_all_day: boolean;
   event_date: string;
   expire_date: string;
   event_image: string;

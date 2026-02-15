@@ -10,6 +10,13 @@ function day(offset = 0) {
   return date.toISOString().slice(0, 10);
 }
 
+function dateTime(offset = 0, hour = 9, minute = 0) {
+  const date = new Date();
+  date.setDate(date.getDate() + offset);
+  date.setHours(hour, minute, 0, 0);
+  return date.toISOString();
+}
+
 async function main() {
   const loginRoutePath = path.resolve(".next/server/app/api/auth/login/route.js");
   const eventsRoutePath = path.resolve(".next/server/app/api/events/route.js");
@@ -83,6 +90,9 @@ async function main() {
     content: "api flow test",
     latitude: 31.57371,
     longitude: 130.345154,
+    start_at: dateTime(1, 10, 0),
+    end_at: dateTime(2, 18, 0),
+    is_all_day: false,
     event_date: day(1),
     expire_date: day(2),
     event_image: "https://placehold.co/1200x800/2a91ff/ffffff?text=Flow",
@@ -104,7 +114,7 @@ async function main() {
     new Request(`http://localhost/api/events/${eventId}`, {
       method: "PUT",
       headers: { "Content-Type": "application/json", cookie: userCookie },
-      body: JSON.stringify({ ...createPayload, expire_date: day(-1) }),
+      body: JSON.stringify({ ...createPayload, end_at: dateTime(0, 8, 0) }),
     }),
     { params: Promise.resolve({ id: eventId }) },
   );
