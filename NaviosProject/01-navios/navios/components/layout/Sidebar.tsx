@@ -35,8 +35,8 @@ export function Sidebar({
   const showCollapsedSections = activeFilter === "all";
 
   return (
-    <aside className="hidden lg:flex flex-col bg-white border-r border-surface-200 overflow-hidden w-[380px] flex-shrink-0">
-      <div className="flex-shrink-0 p-4 border-b border-surface-100">
+    <aside className="hidden lg:flex flex-col bg-white/95 backdrop-blur-sm border-r border-slate-200/60 overflow-hidden w-[380px] flex-shrink-0">
+      <div className="flex-shrink-0 p-4 border-b border-slate-200/40">
         <SearchInput
           value={searchQuery}
           onChange={onSearchChange}
@@ -47,7 +47,7 @@ export function Sidebar({
         <FilterTabs activeFilter={activeFilter} onChange={onFilterChange} />
       </div>
 
-      <div className="flex-shrink-0 px-4 py-2.5 flex items-center justify-between border-b border-surface-100">
+      <div className="flex-shrink-0 px-4 py-2.5 flex items-center justify-between border-b border-slate-200/40">
         <p className="text-xs text-slate-400 font-medium">
           <span className="text-slate-700 font-bold">{events.length}</span> イベント
         </p>

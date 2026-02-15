@@ -3,7 +3,6 @@
 import dynamic from "next/dynamic";
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { Event } from "@/types/event";
-import { SpotBadge } from "../mobile/SpotBadge";
 import { MapControls } from "./MapControls";
 import { MapStats } from "./MapStats";
 
@@ -18,7 +17,6 @@ interface MapContainerProps {
     today: number;
     upcoming: number;
   };
-  mobileLiveNowCount: number;
   enableMarkerPopup?: boolean;
   events: Event[];
   selectedEventId: string | null;
@@ -28,7 +26,6 @@ interface MapContainerProps {
 export function MapContainer({
   areaName = "日置市周辺",
   stats,
-  mobileLiveNowCount,
   enableMarkerPopup = true,
   events,
   selectedEventId,
@@ -108,7 +105,6 @@ export function MapContainer({
         onClickMyLocation={() => actions?.locateMe()}
         onClickResetView={() => actions?.resetView()}
       />
-      <SpotBadge liveNowCount={mobileLiveNowCount} />
     </section>
   );
 }

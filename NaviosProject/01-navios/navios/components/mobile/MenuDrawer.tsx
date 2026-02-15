@@ -2,7 +2,6 @@
 
 import Link from "next/link";
 import { useEffect, useState } from "react";
-import type { FilterType } from "../ui/FilterTabs";
 
 type Actor = {
   userId: string;
@@ -12,23 +11,12 @@ type Actor = {
 
 interface MenuDrawerProps {
   isOpen: boolean;
-  currentFilter: FilterType;
-  counts: {
-    all: number;
-    today: number;
-    upcoming: number;
-    ended: number;
-  };
   onClose?: () => void;
-  onChangeFilter?: (filter: FilterType) => void;
 }
 
 export function MenuDrawer({
   isOpen,
-  currentFilter,
-  counts,
   onClose,
-  onChangeFilter,
 }: MenuDrawerProps) {
   const [actor, setActor] = useState<Actor | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,34 +62,6 @@ export function MenuDrawer({
               <path strokeLinecap="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
-        </div>
-
-        <div className="p-4">
-          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-3">フィルター</p>
-          <div className="space-y-1">
-            {[
-              ["all", "🗺", "ALL", counts.all],
-              ["today", "🔥", "LIVE NOW", counts.today],
-              ["upcoming", "⭐", "SOON", counts.upcoming],
-              ["ended", "🕐", "FINISHED", counts.ended],
-            ].map(([key, icon, label, count]) => {
-              const filter = key as FilterType;
-              const active = currentFilter === filter;
-              return (
-                <button
-                  key={filter}
-                  type="button"
-                  onClick={() => onChangeFilter?.(filter)}
-                  className={`menu-filter-btn w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left transition hover:bg-surface-50 ${active ? "bg-brand-50" : ""}`}
-                  data-filter={filter}
-                >
-                  <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-sm">{icon}</span>
-                  <span className="text-sm font-semibold">{label}</span>
-                  <span className="ml-auto text-xs text-slate-400 font-medium">{count}</span>
-                </button>
-              );
-            })}
-          </div>
         </div>
 
         <div className="border-t border-surface-100 mx-4" />

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import L from "leaflet";
-import { CircleMarker, MapContainer as LeafletMapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
+import { MapContainer as LeafletMapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import type { Event } from "@/types/event";
 import { TILE_ATTRIBUTION, TILE_URL } from "@/lib/constants";
 import { daysUntilText, formatEventSchedule, getEventStatus } from "@/lib/event-status";
@@ -45,10 +45,12 @@ function FlyToSelected({ events, selectedEventId }: { events: Event[]; selectedE
 
 function MapActionsBridge({
   events,
+  currentLocation,
   onReady,
   onLocated,
 }: {
   events: Event[];
+  currentLocation: [number, number] | null;
   onReady?: (actions: { resetView: () => void; locateMe: () => void }) => void;
   onLocated?: (latLng: [number, number]) => void;
 }) {
@@ -59,8 +61,10 @@ function MapActionsBridge({
 
     onReady({
       resetView: () => {
-        if (events.length === 0) return;
-        const bounds = L.latLngBounds(events.map((event) => [event.latitude, event.longitude] as [number, number]));
+        const points: [number, number][] = events.map((event) => [event.latitude, event.longitude]);
+        if (currentLocation) points.push(currentLocation);
+        if (points.length === 0) return;
+        const bounds = L.latLngBounds(points);
         map.flyToBounds(bounds.pad(0.2), { duration: 0.8 });
       },
       locateMe: () => {
@@ -93,7 +97,7 @@ function MapActionsBridge({
         );
       },
     });
-  }, [events, map, onLocated, onReady]);
+  }, [events, currentLocation, map, onLocated, onReady]);
 
   return null;
 }
@@ -293,23 +297,23 @@ export function MapInner({
       })}
 
       {currentLocation ? (
-        <CircleMarker
-          center={currentLocation}
-          radius={9}
-          pathOptions={{
-            color: "#1d4ed8",
-            fillColor: "#3b82f6",
-            fillOpacity: 0.9,
-            weight: 3,
-          }}
+        <Marker
+          position={currentLocation}
+          zIndexOffset={500}
+          icon={L.divIcon({
+            html: '<div class="my-location-marker"><div class="my-location-dot"></div><div class="my-location-ring"></div></div>',
+            className: "",
+            iconSize: [24, 24],
+            iconAnchor: [12, 12],
+          })}
         >
           <Popup>現在地</Popup>
-        </CircleMarker>
+        </Marker>
       ) : null}
 
       <FitToEvents events={events} />
       <FlyToSelected events={events} selectedEventId={selectedEventId} />
-      <MapActionsBridge events={events} onReady={onReady} onLocated={setCurrentLocation} />
+      <MapActionsBridge events={events} currentLocation={currentLocation} onReady={onReady} onLocated={setCurrentLocation} />
       <ViewportCenterBridge onChange={onViewportCenterChange} />
       {enableMarkerPopup ? <PopupAutoFit /> : null}
     </LeafletMapContainer>

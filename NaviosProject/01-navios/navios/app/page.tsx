@@ -9,6 +9,7 @@ import { MobileHeader } from "@/components/layout/MobileHeader";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { MapContainer } from "@/components/map/MapContainer";
 import { MenuDrawer } from "@/components/mobile/MenuDrawer";
+import { MobileFilterBar } from "@/components/mobile/MobileFilterBar";
 import type { SearchResultItem } from "@/components/search/SearchInput";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useEvents } from "@/hooks/useEvents";
@@ -114,7 +115,7 @@ export default function HomePage() {
         onOpenMenu={() => setMenu(true)}
       />
 
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex overflow-hidden relative">
         <Sidebar
           searchQuery={searchQuery}
           activeFilter={filter}
@@ -134,12 +135,19 @@ export default function HomePage() {
             today: counts.today,
             upcoming: counts.upcoming,
           }}
-          mobileLiveNowCount={counts.today}
           enableMarkerPopup={isMobile}
           events={filteredEvents}
           selectedEventId={selectedEventId}
           onSelectEvent={handleSelectEventFromMap}
         />
+
+        {isMobile && (
+          <MobileFilterBar
+            activeFilter={filter}
+            counts={counts}
+            onChange={setFilter}
+          />
+        )}
       </div>
 
       {!isMobile && isPcCardPopupOpen && selectedEvent ? (
@@ -152,7 +160,7 @@ export default function HomePage() {
                 width={1200}
                 height={768}
                 unoptimized
-                className="w-full h-40 object-contain bg-slate-100"
+                className="w-full h-40 object-cover bg-slate-100"
               />
               <StatusBadge
                 status={getEventStatus(selectedEvent)}
@@ -193,13 +201,7 @@ export default function HomePage() {
 
       <MenuDrawer
         isOpen={isMenuOpen}
-        currentFilter={filter}
-        counts={counts}
         onClose={() => setMenu(false)}
-        onChangeFilter={(nextFilter) => {
-          setFilter(nextFilter);
-          setMenu(false);
-        }}
       />
 
       {loading ? (
@@ -217,10 +219,10 @@ export default function HomePage() {
         .leaflet-popup-tip-container { z-index: 1100; }
 
         .custom-scroll::-webkit-scrollbar { width: 5px; }
-        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 999px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #94a3b8; border-radius: 999px; }
         .post-card { transition: transform .22s ease, box-shadow .22s ease; }
-        .post-card:hover { transform: translateY(-3px); box-shadow: 0 12px 28px rgba(15,23,42,.12); }
-        .post-card.active { border-color: #2a91ff; box-shadow: 0 0 0 3px rgba(42,145,255,.15), 0 12px 28px rgba(15,23,42,.12); }
+        .post-card:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(15,23,42,.10); }
+        .post-card.active { border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,.15), 0 12px 28px rgba(15,23,42,.10); }
 
         .marker-pin { position: relative; width: 44px; height: 56px; display: flex; align-items: flex-start; justify-content: center; filter: drop-shadow(0 3px 6px rgba(15,23,42,.25)); }
         .marker-pin .pin-body { width: 38px; height: 38px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg); background: #fff; border: 3px solid transparent; display: flex; align-items: center; justify-content: center; position: relative; overflow: visible; }
@@ -256,6 +258,15 @@ export default function HomePage() {
         @keyframes markerPulse {
           0% { transform: translateX(-50%) scale(1); opacity: .8; }
           100% { transform: translateX(-50%) scale(3.5); opacity: 0; }
+        }
+
+        .my-location-marker { position: relative; width: 24px; height: 24px; display: flex; align-items: center; justify-content: center; }
+        .my-location-dot { width: 14px; height: 14px; border-radius: 50%; background: #3b82f6; border: 3px solid #fff; box-shadow: 0 2px 8px rgba(59,130,246,.45); z-index: 2; }
+        .my-location-ring { position: absolute; inset: -4px; border-radius: 50%; border: 2px solid rgba(59,130,246,.35); animation: locationPulse 2.5s ease-out infinite; z-index: 1; }
+        @keyframes locationPulse {
+          0% { transform: scale(.6); opacity: .8; }
+          70% { transform: scale(1.6); opacity: 0; }
+          100% { transform: scale(1.6); opacity: 0; }
         }
       `}</style>
     </div>

@@ -24,13 +24,13 @@ export function FilterTabs({ activeFilter, onChange, className = "" }: FilterTab
           ? filter.key === "today"
             ? "bg-gradient-to-r from-pink-500 to-fuchsia-600 text-white shadow-[0_8px_18px_rgba(219,39,119,0.28)]"
             : "bg-slate-800 text-white"
-          : "text-slate-500 hover:bg-surface-100";
+          : "text-slate-500 hover:bg-surface-100 hover:text-slate-700";
         return (
           <button
             key={filter.key}
             type="button"
             onClick={() => onChange?.(filter.key)}
-            className={`tab-btn text-xs font-semibold px-3 py-1.5 rounded-lg transition ${activeClass}`}
+            className={`tab-btn text-xs font-semibold px-3.5 py-1.5 rounded-full transition-all duration-200 ${activeClass}`}
             data-filter={filter.key}
           >
             {filter.label}

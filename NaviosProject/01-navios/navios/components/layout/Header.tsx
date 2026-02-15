@@ -4,7 +4,7 @@ import { AuthControls } from "./AuthControls";
 
 export function Header() {
   return (
-    <header className="hidden lg:flex flex-shrink-0 bg-white border-b border-surface-200 px-6 py-3 items-center justify-between">
+    <header className="hidden lg:flex flex-shrink-0 bg-white/90 backdrop-blur-xl border-b border-slate-200/60 px-6 py-3.5 items-center justify-between shadow-sm">
       <Link href="/" className="flex items-center gap-3" aria-label="Go to home">
         <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shadow-lg shadow-brand-500/25">
           <Image src="/navios-logo.svg" alt="Navios logo" width={28} height={28} className="w-7 h-7" />

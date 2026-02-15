@@ -23,7 +23,9 @@ export function useEvents(events: Event[], filter: EventFilter, searchQuery: str
           !q ||
           event.title.toLowerCase().includes(q) ||
           event.content.toLowerCase().includes(q);
-        return matchFilter && matchQuery;
+        // 検索クエリがある場合は全投稿から検索（フィルター無視）
+        if (q) return matchQuery;
+        return matchFilter;
       })
       .sort((a, b) => order[getEventStatus(a)] - order[getEventStatus(b)]);
   }, [events, filter, searchQuery]);

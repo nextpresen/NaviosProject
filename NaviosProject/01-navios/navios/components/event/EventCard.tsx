@@ -28,10 +28,10 @@ interface EventCardProps {
 export function EventCard({ event, active = false, onClick }: EventCardProps) {
   const borderAccent =
     event.status === "today"
-      ? "border-l-4 border-l-pink-500"
+      ? "border-l-[3px] border-l-pink-500"
       : event.status === "upcoming"
-        ? "border-l-4 border-l-blue-400"
-        : "border-l-4 border-l-slate-200";
+        ? "border-l-[3px] border-l-blue-400"
+        : "border-l-[3px] border-l-slate-200";
 
   const textColor =
     event.status === "today" ? "text-pink-600" : event.status === "upcoming" ? "text-blue-600" : "text-slate-400";
@@ -57,7 +57,7 @@ export function EventCard({ event, active = false, onClick }: EventCardProps) {
           width={800}
           height={320}
           unoptimized
-          className="w-full h-32 object-contain bg-slate-100"
+          className="w-full h-36 object-cover bg-slate-100"
         />
         <StatusBadge status={event.status} className="absolute top-2 left-2 backdrop-blur-sm" />
         <div className="absolute top-2 right-2 bg-white/85 backdrop-blur-xl rounded-lg px-2 py-0.5">
