@@ -155,38 +155,51 @@ export default async function EventDetailPage({
   }
 
   return (
-    <main className="min-h-[100dvh] bg-slate-100 py-6">
+    <main className="min-h-[100dvh] bg-gradient-to-br from-slate-50 via-white to-slate-50 py-8 lg:py-12">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{
           __html: JSON.stringify(buildEventJsonLd(event)),
         }}
       />
-      <div className="max-w-3xl mx-auto px-4">
+
+      {/* ナビゲーション - 上部に余白を持たせて浮遊感 */}
+      <div className="max-w-4xl mx-auto px-4 lg:px-6 mb-6">
         <Link
           href="/"
-          className="inline-flex items-center text-sm font-semibold text-slate-600 hover:text-slate-900"
+          className="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-white/80 backdrop-blur-sm border border-slate-200 text-sm font-semibold text-slate-700 hover:bg-white hover:text-slate-900 hover:border-slate-300 transition-all shadow-sm hover:shadow"
         >
-          ← マップへ戻る
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+          </svg>
+          マップへ戻る
         </Link>
       </div>
-      <EventDetail
-        id={event.id}
-        title={event.title}
-        content={event.content}
-        category={event.category}
-        tags={event.tags}
-        imageUrl={event.event_image}
-        address={event.address}
-        dateText={formatEventSchedule(event)}
-        daysText={daysUntilText(event)}
-        status={getEventStatus(event)}
-        viewCount={event.view_count ?? 0}
-      />
-      <EventActions
-        id={event.id}
-        canManage={Boolean(actor && canManageEvent(actor, event.author_id ?? null))}
-      />
+
+      {/* メインコンテンツ */}
+      <div className="max-w-4xl mx-auto px-4 lg:px-6">
+        <EventDetail
+          id={event.id}
+          title={event.title}
+          content={event.content}
+          category={event.category}
+          tags={event.tags}
+          imageUrl={event.event_image}
+          address={event.address}
+          dateText={formatEventSchedule(event)}
+          daysText={daysUntilText(event)}
+          status={getEventStatus(event)}
+          viewCount={event.view_count ?? 0}
+        />
+
+        {/* アクションボタン - カード内に統合 */}
+        <div className="mt-6">
+          <EventActions
+            id={event.id}
+            canManage={Boolean(actor && canManageEvent(actor, event.author_id ?? null))}
+          />
+        </div>
+      </div>
     </main>
   );
 }
