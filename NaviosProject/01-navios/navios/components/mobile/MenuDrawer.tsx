@@ -2,6 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { signOut } from "next-auth/react";
 import { useEffect, useState } from "react";
 
 type Actor = {
@@ -19,6 +21,7 @@ export function MenuDrawer({
   isOpen,
   onClose,
 }: MenuDrawerProps) {
+  const router = useRouter();
   const [actor, setActor] = useState<Actor | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,6 +46,15 @@ export function MenuDrawer({
     };
   }, []);
 
+  const onLogout = async () => {
+    await signOut({ redirect: false });
+    await fetch("/api/auth/logout", { method: "POST" });
+    setActor(null);
+    onClose?.();
+    router.push("/");
+    router.refresh();
+  };
+
   return (
     <>
       <div className={`menu-overlay fixed inset-0 z-[3000] bg-black/40 transition-opacity ${isOpen ? "open opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`} onClick={onClose} />
@@ -65,18 +77,33 @@ export function MenuDrawer({
         <div className="border-t border-surface-100 mx-4" />
         <div className="p-4">
           {loading ? null : actor ? (
-            <Link
-              href="/new"
-              onClick={onClose}
-              className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-surface-50 transition"
-            >
-              <span className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
-                <svg className="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
-                </svg>
-              </span>
-              <span className="text-sm font-semibold">投稿する</span>
-            </Link>
+            <div className="space-y-1">
+              <Link
+                href="/new"
+                onClick={onClose}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-surface-50 transition"
+              >
+                <span className="w-8 h-8 rounded-lg bg-brand-50 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-brand-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4" />
+                  </svg>
+                </span>
+                <span className="text-sm font-semibold">投稿する</span>
+              </Link>
+              <button
+                type="button"
+                onClick={onLogout}
+                className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-left hover:bg-surface-50 transition"
+              >
+                <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center">
+                  <svg className="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7" />
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 4h8v16H3z" />
+                  </svg>
+                </span>
+                <span className="text-sm font-semibold">ログアウト</span>
+              </button>
+            </div>
           ) : (
             <div className="space-y-1">
               <Link

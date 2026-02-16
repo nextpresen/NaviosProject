@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
 import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
@@ -18,6 +19,13 @@ import { prisma } from "@/lib/prisma";
 const paramsSchema = z.object({
   id: z.string().trim().min(1),
 });
+
+function isMissingTableError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2021"
+  );
+}
 
 const eventUpdateSchema = z.object({
   title: z.string().trim().min(1).max(120),
@@ -57,6 +65,12 @@ export async function GET(
     const event = toEvent(row);
     return NextResponse.json({ ...ok({ event }), event });
   } catch (error) {
+    if (isMissingTableError(error)) {
+      return NextResponse.json(
+        fail("DB_NOT_READY", "データベースの初期化が必要です（npm run prisma:migrate）。"),
+        { status: 503 },
+      );
+    }
     console.error("GET /api/events/[id] failed:", error);
     if (process.env.NODE_ENV === "production") {
       return NextResponse.json(
@@ -159,6 +173,12 @@ export async function PUT(
     const event = toEvent(updated);
     return NextResponse.json({ ...ok({ event }), event });
   } catch (error) {
+    if (isMissingTableError(error)) {
+      return NextResponse.json(
+        fail("DB_NOT_READY", "データベースの初期化が必要です（npm run prisma:migrate）。"),
+        { status: 503 },
+      );
+    }
     const message = String(error);
     if (message.includes("Record to update not found")) {
       return NextResponse.json(fail("NOT_FOUND", "Event not found"), { status: 404 });
@@ -210,6 +230,12 @@ export async function DELETE(
     await prisma.event.delete({ where: { id: parsedParams.data.id } });
     return NextResponse.json(ok({ id: parsedParams.data.id }));
   } catch (error) {
+    if (isMissingTableError(error)) {
+      return NextResponse.json(
+        fail("DB_NOT_READY", "データベースの初期化が必要です（npm run prisma:migrate）。"),
+        { status: 503 },
+      );
+    }
     const message = String(error);
     if (message.includes("Record to delete does not exist")) {
       return NextResponse.json(fail("NOT_FOUND", "Event not found"), { status: 404 });

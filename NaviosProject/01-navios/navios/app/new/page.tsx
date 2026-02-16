@@ -457,7 +457,11 @@ function NewEventPageInner() {
         throw new Error("保存後のイベントIDを取得できませんでした");
       }
 
-      router.push(`/event/${id}`);
+      if (isEdit) {
+        router.push(`/event/${id}`);
+      } else {
+        router.push(`/new/success?id=${encodeURIComponent(id)}`);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "保存に失敗しました");
     } finally {

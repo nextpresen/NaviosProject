@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { Prisma } from "@prisma/client";
 import { z } from "zod";
 import { fail, ok } from "@/lib/api-response";
 import { getSessionActorFromRequest, getSessionActorFromServer } from "@/lib/auth-session";
@@ -45,6 +46,13 @@ const eventCreateSchema = z.object({
 
 function fallbackAvatarFromEmail(email: string) {
   return `https://api.dicebear.com/9.x/initials/svg?seed=${encodeURIComponent(email)}`;
+}
+
+function isMissingTableError(error: unknown) {
+  return (
+    error instanceof Prisma.PrismaClientKnownRequestError &&
+    error.code === "P2021"
+  );
 }
 
 function haversineKm(lat1: number, lon1: number, lat2: number, lon2: number) {
@@ -204,6 +212,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ ...ok({ event }), event }, { status: 201 });
   } catch (error) {
     console.error("POST /api/events failed:", error);
+    if (isMissingTableError(error)) {
+      return NextResponse.json(
+        fail("DB_NOT_READY", "データベースの初期化が必要です（npm run prisma:migrate）。"),
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       fail("DB_CREATE_FAILED", "イベントの作成に失敗しました"),
       { status: 500 },
