@@ -33,6 +33,8 @@ const querySchema = z.object({
 const eventCreateSchema = z.object({
   title: z.string().trim().min(1).max(120),
   content: z.string().trim().min(1).max(5000),
+  place_name: z.string().trim().min(1).max(160).optional(),
+  address_label: z.string().trim().min(1).max(255).optional(),
   category: z.enum(EVENT_CATEGORY_VALUES).optional(),
   tags: z.array(z.enum(EVENT_TAG_VALUES)).max(3).optional(),
   start_at: z.string().datetime().optional(),
@@ -84,6 +86,8 @@ function filterEvents(
       !params.q ||
       event.title.toLowerCase().includes(params.q) ||
       event.content.toLowerCase().includes(params.q) ||
+      (event.place_name ?? "").toLowerCase().includes(params.q) ||
+      (event.address_label ?? "").toLowerCase().includes(params.q) ||
       (event.address ?? "").toLowerCase().includes(params.q);
 
     let byDistance = true;
@@ -197,18 +201,22 @@ export async function POST(request: Request) {
 
   try {
     const profile = await getUserProfile(actor.userId, actor.email);
-    const address = await reverseGeocodeAddress(payload.latitude, payload.longitude);
+    const geocodedAddress = await reverseGeocodeAddress(payload.latitude, payload.longitude);
+    const placeName = payload.place_name ?? payload.title;
+    const addressLabel = payload.address_label ?? geocodedAddress;
     const created = await prisma.event.create({
       data: {
         title: payload.title,
         content: payload.content,
+        place_name: placeName,
+        address_label: addressLabel,
         author_id: actor.userId,
         author_avatar_url:
           payload.author_avatar_url ?? profile.avatar_url ?? fallbackAvatarFromEmail(actor.email),
         category: payload.category ?? "event",
         latitude: payload.latitude,
         longitude: payload.longitude,
-        address,
+        address: addressLabel,
         start_at: schedule.startAt,
         end_at: schedule.endAt,
         is_all_day: payload.is_all_day ?? false,

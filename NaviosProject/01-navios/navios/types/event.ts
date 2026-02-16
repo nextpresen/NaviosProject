@@ -26,6 +26,8 @@ export interface Event {
   category: EventCategory;
   latitude: number;
   longitude: number;
+  place_name?: string | null;
+  address_label?: string | null;
   address?: string | null;
   start_at: string;
   end_at: string;

@@ -31,6 +31,8 @@ function isMissingTableError(error: unknown) {
 const eventUpdateSchema = z.object({
   title: z.string().trim().min(1).max(120),
   content: z.string().trim().min(1).max(5000),
+  place_name: z.string().trim().min(1).max(160).optional(),
+  address_label: z.string().trim().min(1).max(255).optional(),
   category: z.enum(EVENT_CATEGORY_VALUES).optional(),
   tags: z.array(z.enum(EVENT_TAG_VALUES)).max(3).optional(),
   start_at: z.string().datetime().optional(),
@@ -140,7 +142,15 @@ export async function PUT(
   try {
     const existing = await prisma.event.findUnique({
       where: { id: parsedParams.data.id },
-      select: { id: true, author_id: true, latitude: true, longitude: true, address: true },
+      select: {
+        id: true,
+        author_id: true,
+        latitude: true,
+        longitude: true,
+        place_name: true,
+        address_label: true,
+        address: true,
+      },
     });
     if (!existing) {
       return NextResponse.json(fail("NOT_FOUND", "Event not found"), { status: 404 });
@@ -155,21 +165,25 @@ export async function PUT(
     const coordinatesChanged =
       Math.abs(existing.latitude - payload.latitude) > 0.000001 ||
       Math.abs(existing.longitude - payload.longitude) > 0.000001;
-    const nextAddress = coordinatesChanged
+    const geocodedAddress = coordinatesChanged
       ? await reverseGeocodeAddress(payload.latitude, payload.longitude)
-      : existing.address;
+      : existing.address_label ?? existing.address;
+    const nextPlaceName = payload.place_name ?? existing.place_name ?? payload.title;
+    const nextAddressLabel = payload.address_label ?? geocodedAddress;
 
     const updated = await prisma.event.update({
       where: { id: parsedParams.data.id },
       data: {
         title: payload.title,
         content: payload.content,
+        place_name: nextPlaceName,
+        address_label: nextAddressLabel,
         category: payload.category,
         tags_json: stringifyTagsJSON(payload.tags as EventTag[] | undefined),
         author_avatar_url: payload.author_avatar_url,
         latitude: payload.latitude,
         longitude: payload.longitude,
-        address: nextAddress,
+        address: nextAddressLabel,
         start_at: schedule.startAt,
         end_at: schedule.endAt,
         is_all_day: payload.is_all_day ?? false,

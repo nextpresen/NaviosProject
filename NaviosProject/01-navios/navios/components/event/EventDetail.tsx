@@ -11,7 +11,11 @@ interface EventDetailProps {
   category: EventCategory;
   tags: EventTag[];
   imageUrl: string;
+  placeName?: string | null;
+  addressLabel?: string | null;
   address?: string | null;
+  latitude: number;
+  longitude: number;
   dateText: string;
   daysText: string;
   status: EventStatus;
@@ -25,7 +29,11 @@ export function EventDetail({
   category,
   tags,
   imageUrl,
+  placeName,
+  addressLabel,
   address,
+  latitude,
+  longitude,
   dateText,
   daysText,
   status,
@@ -33,6 +41,9 @@ export function EventDetail({
 }: EventDetailProps) {
   const textColor = status === "today" ? "text-pink-600" : status === "upcoming" ? "text-blue-600" : "text-slate-400";
   const categoryMeta = getCategoryMeta(category);
+  const displayPlaceName = placeName?.trim() || title;
+  const displayAddress = addressLabel ?? address;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${latitude},${longitude}`)}`;
 
   return (
     <article data-id={id} className="bg-white rounded-3xl overflow-hidden shadow-lg">
@@ -104,7 +115,7 @@ export function EventDetail({
         )}
 
         {/* 住所 - 地図アイコンで視認性向上 */}
-        {address && (
+        {displayAddress && (
           <div className="mb-6 p-4 rounded-xl bg-blue-50/50 border border-blue-100">
             <div className="flex items-start gap-3">
               <svg className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24">
@@ -113,7 +124,16 @@ export function EventDetail({
               </svg>
               <div className="flex-1 min-w-0">
                 <p className="text-xs font-semibold text-blue-900 mb-0.5">開催場所</p>
-                <p className="text-sm text-blue-800 leading-relaxed">{address}</p>
+                <p className="text-sm font-semibold text-blue-900 leading-relaxed">{displayPlaceName}</p>
+                <p className="text-sm text-blue-800 leading-relaxed">{displayAddress}</p>
+                <a
+                  href={mapsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-2 inline-flex items-center rounded-md border border-blue-200 bg-blue-100 px-2.5 py-1.5 text-xs font-bold text-blue-700 hover:bg-blue-200"
+                >
+                  Googleマップで開く
+                </a>
               </div>
             </div>
           </div>

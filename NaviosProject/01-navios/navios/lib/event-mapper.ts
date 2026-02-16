@@ -10,6 +10,8 @@ type EventRow = {
   category: string;
   latitude: number;
   longitude: number;
+  place_name: string | null;
+  address_label: string | null;
   address: string | null;
   start_at: Date | null;
   end_at: Date | null;
@@ -34,6 +36,8 @@ export function toEvent(input: EventRow): Event {
     category: toSafeCategory(input.category),
     latitude: input.latitude,
     longitude: input.longitude,
+    place_name: input.place_name,
+    address_label: input.address_label ?? input.address,
     address: input.address,
     start_at: startAt.toISOString(),
     end_at: endAt.toISOString(),

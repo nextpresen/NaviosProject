@@ -280,6 +280,10 @@ export function MapInner({
                   title={event.title}
                   content={event.content}
                   imageUrl={event.event_image}
+                  placeName={event.place_name}
+                  addressLabel={event.address_label ?? event.address}
+                  latitude={event.latitude}
+                  longitude={event.longitude}
                   dateText={formatEventSchedule(event)}
                   daysText={daysUntilText(event)}
                   status={status}

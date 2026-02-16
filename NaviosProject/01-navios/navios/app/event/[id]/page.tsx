@@ -185,7 +185,11 @@ export default async function EventDetailPage({
           category={event.category}
           tags={event.tags}
           imageUrl={event.event_image}
+          placeName={event.place_name}
+          addressLabel={event.address_label}
           address={event.address}
+          latitude={event.latitude}
+          longitude={event.longitude}
           dateText={formatEventSchedule(event)}
           daysText={daysUntilText(event)}
           status={getEventStatus(event)}

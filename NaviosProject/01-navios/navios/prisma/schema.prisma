@@ -17,6 +17,8 @@ model Event {
   tags_json         String   @default("[]")
   latitude          Float
   longitude         Float
+  place_name        String?
+  address_label     String?
   start_at          DateTime?
   end_at            DateTime?
   is_all_day        Boolean  @default(false)

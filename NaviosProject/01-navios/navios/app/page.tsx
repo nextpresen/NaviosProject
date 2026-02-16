@@ -211,21 +211,39 @@ export default function HomePage() {
               <h3 className="text-sm font-extrabold text-slate-900 line-clamp-1">
                 {selectedEvent.title}
               </h3>
+              <p className="mt-1 text-xs text-slate-700 line-clamp-1">
+                📍 {selectedEvent.place_name ?? selectedEvent.title}
+              </p>
+              {selectedEvent.address_label || selectedEvent.address ? (
+                <p className="mt-1 text-xs text-slate-500 line-clamp-1">
+                  {selectedEvent.address_label ?? selectedEvent.address}
+                </p>
+              ) : null}
               <p className="mt-1 text-xs text-slate-500">
                 📅 {formatEventSchedule(selectedEvent)}
               </p>
               <p className="mt-2 text-xs text-slate-600 leading-relaxed line-clamp-3">
                 {selectedEvent.content}
               </p>
-              <Link
-                href={`/event/${selectedEvent.id}`}
-                className="mt-3 inline-flex items-center gap-1.5 rounded-[10px] bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-900 border border-slate-300 transition shadow-sm"
-              >
-                詳細を見る
-                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
-                </svg>
-              </Link>
+              <div className="mt-3 flex items-center gap-2">
+                <Link
+                  href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${selectedEvent.latitude},${selectedEvent.longitude}`)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-blue-50 hover:bg-blue-100 px-3 py-2 text-xs font-bold text-blue-700 border border-blue-200 transition shadow-sm"
+                >
+                  Googleで開く
+                </Link>
+                <Link
+                  href={`/event/${selectedEvent.id}`}
+                  className="inline-flex items-center gap-1.5 rounded-[10px] bg-white hover:bg-slate-50 px-3.5 py-2 text-xs font-bold text-slate-900 border border-slate-300 transition shadow-sm"
+                >
+                  詳細を見る
+                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  </svg>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
