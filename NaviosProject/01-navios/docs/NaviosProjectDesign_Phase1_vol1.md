@@ -209,3 +209,46 @@ return matchFilter;
 - データモデル: 変更なし
 - 認証/認可: 変更なし
 - 投稿/編集/削除フロー: 変更なし
+
+## 8. 地図SDK差し替え可能設計（2026-02-16 追記）
+
+### 8.1 目的
+- Web（Leaflet）とMobile（将来 Google Maps SDK）を並行運用できる構成にする
+- 画面側の呼び出しを「地図プロバイダ非依存」にする
+- Phase1時点では挙動を壊さず、Leafletをデフォルト維持する
+
+### 8.2 設計方針
+- プロバイダ判定を `lib/map-provider.ts` に集約
+- UI層は直接 `MapInner` / `PostLocationPickerInner` を参照せず、Facade経由に統一
+- Provider別実装を `components/map/providers/` 配下に分離
+- 型（地図描画・位置ピッカーの契約）は `components/map/types.ts` で共通化
+
+### 8.3 実装内容（今回反映）
+| 区分 | ファイル | 内容 |
+|---|---|---|
+| 新規 | `navios/lib/map-provider.ts` | `MapProvider` 型・`normalizeMapProvider`・`getClientMapProvider` を追加 |
+| 新規 | `navios/components/map/types.ts` | `MapCanvasProps` / `PostLocationPickerCanvasProps` を追加 |
+| 新規 | `navios/components/map/MapCanvas.tsx` | プロバイダ選択Facade。現状 `leaflet` と `google(フォールバック)` を切替 |
+| 新規 | `navios/components/map/providers/GoogleMapCanvasFallback.tsx` | Google未実装時のLeafletフォールバック |
+| 新規 | `navios/components/map/providers/GooglePostLocationPickerFallback.tsx` | Google未実装時のLeafletフォールバック |
+| 編集 | `navios/components/map/MapContainer.tsx` | `MapInner` 直参照を `MapCanvas` に置換 |
+| 編集 | `navios/components/map/MapInner.tsx` | props型を共通契約 `MapCanvasProps` に統一 |
+| 編集 | `navios/components/map/PostLocationPicker.tsx` | プロバイダ選択Facadeへ変更 |
+| 編集 | `navios/components/map/PostLocationPickerInner.tsx` | props型を `PostLocationPickerCanvasProps` に統一 |
+| 編集 | `navios/app/page.tsx` | Leaflet専用CSSの適用を provider 判定で条件化 |
+
+### 8.4 環境変数仕様
+- `NEXT_PUBLIC_MAP_PROVIDER=leaflet`（既定）
+- `NEXT_PUBLIC_MAP_PROVIDER=google`（現時点では警告を出しつつLeafletにフォールバック）
+
+### 8.5 現時点の到達点
+- 呼び出し側は「どの地図SDKを使うか」を直接知らない構成になった
+- 将来は `GoogleMapCanvas` / `GooglePostLocationPicker` を実装し、Facade切替のみで導入可能
+- 既存画面のLeaflet挙動・機能（ピン、ポップアップ、現在地、投稿位置選択）は維持
+
+### 8.6 Google Maps実装時の差し替え手順（次フェーズ）
+1. `components/map/providers/GoogleMapCanvas.tsx` を新規実装（地図表示/ピン/現在地）
+2. `components/map/providers/GooglePostLocationPicker.tsx` を新規実装（投稿地点選択）
+3. `MapCanvas.tsx` / `PostLocationPicker.tsx` の `google` 分岐をフォールバックから本実装へ置換
+4. `app/layout.tsx` のLeaflet CSSグローバル読込を provider に応じて整理（不要時除外）
+5. 主要導線（トップ地図・投稿画面）を provider 別にE2E検証

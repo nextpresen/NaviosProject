@@ -10,14 +10,9 @@ import {
   useMapEvents,
 } from "react-leaflet";
 import { TILE_ATTRIBUTION, TILE_URL } from "@/lib/constants";
+import type { PostLocationPickerCanvasProps } from "./types";
 
 type PickMode = "center-fixed" | "tap-drop";
-
-interface PostLocationPickerInnerProps {
-  latitude: number;
-  longitude: number;
-  onChange: (latitude: number, longitude: number) => void;
-}
 
 function isClose(a: number, b: number) {
   return Math.abs(a - b) < 0.000001;
@@ -106,7 +101,7 @@ export function PostLocationPickerInner({
   latitude,
   longitude,
   onChange,
-}: PostLocationPickerInnerProps) {
+}: PostLocationPickerCanvasProps) {
   const [mode, setMode] = useState<PickMode>("center-fixed");
   const markerRef = useRef<L.Marker | null>(null);
   const icon = useMemo(() => markerIcon(), []);

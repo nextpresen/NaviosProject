@@ -15,11 +15,13 @@ import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useEvents } from "@/hooks/useEvents";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { daysUntilText, formatEventSchedule, getEventStatus } from "@/lib/event-status";
+import { getClientMapProvider } from "@/lib/map-provider";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { useAppStore } from "@/store/useAppStore";
 import type { Event } from "@/types/event";
 
 export default function HomePage() {
+  const mapProvider = getClientMapProvider();
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
@@ -210,7 +212,8 @@ export default function HomePage() {
         </div>
       ) : null}
 
-      <style jsx global>{`
+      {mapProvider === "leaflet" ? (
+        <style jsx global>{`
         /* ポップアップが地図コンテナからはみ出しても見切れないようにする */
         .leaflet-pane { overflow: visible !important; }
         .leaflet-popup { z-index: 1100 !important; }
@@ -269,6 +272,7 @@ export default function HomePage() {
           100% { transform: scale(1.6); opacity: 0; }
         }
       `}</style>
+      ) : null}
     </div>
   );
 }

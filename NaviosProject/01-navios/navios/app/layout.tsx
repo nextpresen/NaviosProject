@@ -15,9 +15,9 @@ function getSiteUrl() {
 
 const siteUrl = getSiteUrl();
 const siteName = "Navios";
-const defaultTitle = "Navios | 鹿児島・日置の地域イベント投稿マップ";
+const defaultTitle = "Navios | 世界のまちをつなぐイベント投稿マップ";
 const defaultDescription =
-  "Naviosは、鹿児島県日置市周辺のイベント・特売・グルメ・地域ニュースを地図で探せる地域情報アプリです。近くの催しを見つけて、投稿・共有できます。";
+  "Naviosは、イベント・特売・グルメ・地域ニュースを地図で見つけて投稿・共有できるコミュニティアプリです。日本全国から世界へ、いまこの場所の情報をリアルタイムで届けます。";
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -31,11 +31,11 @@ export const metadata: Metadata = {
     canonical: "/",
   },
   keywords: [
-    "日置市 イベント",
-    "鹿児島 イベント",
-    "地域イベント マップ",
-    "特売 情報",
-    "地元 グルメ 情報",
+    "イベント マップ",
+    "地域情報 アプリ",
+    "全国 イベント",
+    "海外 イベント",
+    "ローカルニュース 共有",
     "Navios",
   ],
   openGraph: {

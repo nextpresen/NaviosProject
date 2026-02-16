@@ -8,15 +8,7 @@ import { TILE_ATTRIBUTION, TILE_URL } from "@/lib/constants";
 import { daysUntilText, formatEventSchedule, getEventStatus } from "@/lib/event-status";
 import { EventPopup } from "../event/EventPopup";
 import { buildMarkerHTML, markerSizeByStatus } from "./MarkerIcon";
-
-interface MapInnerProps {
-  events: Event[];
-  selectedEventId: string | null;
-  enableMarkerPopup?: boolean;
-  onSelectEvent?: (id: string) => void;
-  onReady?: (actions: { resetView: () => void; locateMe: () => void }) => void;
-  onViewportCenterChange?: (latLng: [number, number]) => void;
-}
+import type { MapCanvasProps } from "./types";
 
 function FitToEvents({ events }: { events: Event[] }) {
   const map = useMap();
@@ -214,7 +206,7 @@ export function MapInner({
   onSelectEvent,
   onReady,
   onViewportCenterChange,
-}: MapInnerProps) {
+}: MapCanvasProps) {
   const [currentLocation, setCurrentLocation] = useState<[number, number] | null>(null);
   const markerRefs = useRef(new Map<string, L.Marker>());
 

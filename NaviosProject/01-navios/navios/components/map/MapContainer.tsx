@@ -6,7 +6,7 @@ import type { Event } from "@/types/event";
 import { MapControls } from "./MapControls";
 import { MapStats } from "./MapStats";
 
-const MapInner = dynamic(() => import("./MapInner").then((mod) => mod.MapInner), {
+const MapCanvas = dynamic(() => import("./MapCanvas").then((mod) => mod.MapCanvas), {
   ssr: false,
 });
 
@@ -80,7 +80,7 @@ export function MapContainer({
   return (
     <section className="flex-1 relative overflow-hidden">
       <div id="map" className="w-full h-full">
-        <MapInner
+        <MapCanvas
           events={events}
           selectedEventId={selectedEventId}
           enableMarkerPopup={enableMarkerPopup}
