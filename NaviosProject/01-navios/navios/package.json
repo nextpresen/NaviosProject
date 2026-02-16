@@ -10,8 +10,6 @@
     "lint": "eslint",
     "test": "bash scripts/run-tests.sh",
     "test:e2e": "node scripts/test-api-flow.mjs",
-    "scrape:events:csv": "node scripts/scrape-events-to-csv.mjs",
-    "supabase:import:events:csv": "node scripts/import-events-csv-to-supabase.mjs",
     "prisma:generate": "prisma generate",
     "prisma:generate:auto": "node scripts/prisma-generate.cjs",
     "prisma:migrate": "prisma db push --accept-data-loss",
