@@ -26,6 +26,7 @@ export interface Event {
   category: EventCategory;
   latitude: number;
   longitude: number;
+  address?: string | null;
   start_at: string;
   end_at: string;
   is_all_day: boolean;
@@ -33,6 +34,7 @@ export interface Event {
   expire_date: string;
   event_image: string;
   tags: EventTag[];
+  view_count?: number;
   popularity_score?: number;
 }
 

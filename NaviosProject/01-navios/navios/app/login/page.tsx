@@ -75,6 +75,12 @@ export default function LoginPage() {
           >
             {submitting ? "ログイン中..." : "ログイン"}
           </button>
+          <Link
+            href="/"
+            className="w-full inline-flex items-center justify-center rounded-xl border border-slate-300 bg-white text-slate-700 text-sm font-semibold px-5 py-2.5 hover:bg-slate-50"
+          >
+            ホームへ戻る
+          </Link>
         </form>
 
         <p className="mt-4 text-sm text-slate-600">

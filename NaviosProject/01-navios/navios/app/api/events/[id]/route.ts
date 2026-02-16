@@ -15,6 +15,7 @@ import { stringifyTagsJSON } from "@/lib/event-taxonomy";
 import { imageSchema } from "@/lib/validations/event";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
+import { reverseGeocodeAddress } from "@/lib/reverse-geocode";
 
 const paramsSchema = z.object({
   id: z.string().trim().min(1),
@@ -139,7 +140,7 @@ export async function PUT(
   try {
     const existing = await prisma.event.findUnique({
       where: { id: parsedParams.data.id },
-      select: { id: true, author_id: true },
+      select: { id: true, author_id: true, latitude: true, longitude: true, address: true },
     });
     if (!existing) {
       return NextResponse.json(fail("NOT_FOUND", "Event not found"), { status: 404 });
@@ -151,6 +152,13 @@ export async function PUT(
       );
     }
 
+    const coordinatesChanged =
+      Math.abs(existing.latitude - payload.latitude) > 0.000001 ||
+      Math.abs(existing.longitude - payload.longitude) > 0.000001;
+    const nextAddress = coordinatesChanged
+      ? await reverseGeocodeAddress(payload.latitude, payload.longitude)
+      : existing.address;
+
     const updated = await prisma.event.update({
       where: { id: parsedParams.data.id },
       data: {
@@ -161,6 +169,7 @@ export async function PUT(
         author_avatar_url: payload.author_avatar_url,
         latitude: payload.latitude,
         longitude: payload.longitude,
+        address: nextAddress,
         start_at: schedule.startAt,
         end_at: schedule.endAt,
         is_all_day: payload.is_all_day ?? false,

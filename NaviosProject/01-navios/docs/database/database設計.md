@@ -28,12 +28,14 @@ ORM: Prisma
 | `tags_json` | `String` | Yes | `"[]"` | タグJSON |
 | `latitude` | `Float` | Yes | - | 緯度 |
 | `longitude` | `Float` | Yes | - | 経度 |
+| `address` | `String?` | No | `null` | 緯度経度から逆ジオコーディングした住所文字列 |
 | `start_at` | `DateTime?` | No | `null` | 開始日時 |
 | `end_at` | `DateTime?` | No | `null` | 終了日時 |
 | `is_all_day` | `Boolean` | Yes | `false` | 終日フラグ |
 | `event_date` | `DateTime` | Yes | - | 開催日（開始日） |
 | `expire_date` | `DateTime` | Yes | - | 終了日 |
 | `event_image` | `String` | Yes | - | 画像URL / Data URL |
+| `view_count` | `Int` | Yes | `0` | 詳細ページ閲覧数（30分同一ブラウザ再計測抑制） |
 | `popularity_score` | `Int` | Yes | `0` | 人気スコア（過去人気表示の並び替えに使用） |
 | `created_at` | `DateTime` | Yes | `now()` | 作成日時 |
 | `updated_at` | `DateTime` | Yes | `@updatedAt` | 更新日時 |
@@ -88,6 +90,12 @@ ORM: Prisma
   - archive扱いイベントは除外
 - 過去人気: `GET /api/events/popular-past?limit=3`
   - archive扱いイベントを人気順で返す
+- 閲覧数加算: `POST /api/events/{id}/view`
+  - `view_count` を `+1` 更新して返却
+  - フロント側で同一ブラウザ30分以内の重複加算を抑制
+- 投稿作成/更新: `POST /api/events`, `PUT /api/events/{id}`
+  - `latitude/longitude` から逆ジオコーディングを実行して `address` を保存
+  - 逆ジオコーディング失敗時は `address = null` で保存継続（投稿自体は失敗させない）
 
 ## 5. Prismaスキーマ
 

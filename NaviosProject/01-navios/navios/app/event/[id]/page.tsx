@@ -177,9 +177,11 @@ export default async function EventDetailPage({
         category={event.category}
         tags={event.tags}
         imageUrl={event.event_image}
+        address={event.address}
         dateText={formatEventSchedule(event)}
         daysText={daysUntilText(event)}
         status={getEventStatus(event)}
+        viewCount={event.view_count ?? 0}
       />
       <EventActions
         id={event.id}

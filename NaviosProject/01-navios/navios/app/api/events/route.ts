@@ -19,6 +19,7 @@ import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
 import { getUserProfile } from "@/lib/user-profile";
 import { isArchivedEvent } from "@/lib/event-archive";
+import { reverseGeocodeAddress } from "@/lib/reverse-geocode";
 
 const statusSchema = z.enum(["all", "today", "upcoming", "ended"]);
 const querySchema = z.object({
@@ -82,7 +83,8 @@ function filterEvents(
     const byQuery =
       !params.q ||
       event.title.toLowerCase().includes(params.q) ||
-      event.content.toLowerCase().includes(params.q);
+      event.content.toLowerCase().includes(params.q) ||
+      (event.address ?? "").toLowerCase().includes(params.q);
 
     let byDistance = true;
     if (
@@ -195,6 +197,7 @@ export async function POST(request: Request) {
 
   try {
     const profile = await getUserProfile(actor.userId, actor.email);
+    const address = await reverseGeocodeAddress(payload.latitude, payload.longitude);
     const created = await prisma.event.create({
       data: {
         title: payload.title,
@@ -205,6 +208,7 @@ export async function POST(request: Request) {
         category: payload.category ?? "event",
         latitude: payload.latitude,
         longitude: payload.longitude,
+        address,
         start_at: schedule.startAt,
         end_at: schedule.endAt,
         is_all_day: payload.is_all_day ?? false,

@@ -39,15 +39,15 @@ export function MobileFilterBar({
               key={f.key}
               type="button"
               onClick={() => onChange?.(f.key)}
-              className={`flex-shrink-0 rounded-full px-3 py-1.5 border border-white/60 shadow-lg backdrop-blur-xl flex items-center gap-1.5 transition-all duration-200 ${
+              className={`flex-shrink-0 rounded-full px-3 py-1.5 border border-white/60 shadow-lg backdrop-blur-xl flex flex-col items-center justify-center gap-0.5 transition-all duration-200 ${
                 isActive ? f.activeClass : "bg-white/85 text-slate-600"
               }`}
             >
-              <span className="text-[11px] font-extrabold tracking-wide whitespace-nowrap">
+              <span className="text-[11px] font-extrabold tracking-wide whitespace-nowrap text-center leading-none">
                 {f.label}
               </span>
               <span
-                className={`text-[10px] font-bold ${isActive ? "opacity-80" : "text-slate-400"}`}
+                className={`text-[10px] font-bold text-center leading-none ${isActive ? "opacity-80" : "text-slate-400"}`}
               >
                 {counts[f.key]}
               </span>

@@ -10,6 +10,7 @@ type EventRow = {
   category: string;
   latitude: number;
   longitude: number;
+  address: string | null;
   start_at: Date | null;
   end_at: Date | null;
   is_all_day: boolean;
@@ -17,6 +18,7 @@ type EventRow = {
   expire_date: Date;
   event_image: string;
   tags_json: string;
+  view_count: number;
   popularity_score: number;
 };
 
@@ -32,6 +34,7 @@ export function toEvent(input: EventRow): Event {
     category: toSafeCategory(input.category),
     latitude: input.latitude,
     longitude: input.longitude,
+    address: input.address,
     start_at: startAt.toISOString(),
     end_at: endAt.toISOString(),
     is_all_day: input.is_all_day ?? false,
@@ -39,6 +42,7 @@ export function toEvent(input: EventRow): Event {
     expire_date: input.expire_date.toISOString().slice(0, 10),
     event_image: input.event_image,
     tags: parseTagsJSON(input.tags_json),
+    view_count: input.view_count,
     popularity_score: input.popularity_score,
   };
 }
