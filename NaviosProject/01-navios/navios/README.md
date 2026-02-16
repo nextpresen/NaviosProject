@@ -65,6 +65,8 @@ npm run lint
 npm run build
 npm run test
 npm run test:e2e
+npm run scrape:events:csv -- --url https://example.com/events
+npm run supabase:import:events:csv -- --file ./events_for_supabase.csv
 npm run prisma:generate
 npm run prisma:migrate
 npm run prisma:seed
@@ -72,6 +74,43 @@ npm run prisma:generate:supabase
 npm run prisma:migrate:supabase
 npm run supabase:rehearsal
 ```
+
+## Scraping -> CSV -> Supabase import
+
+`Event` テーブル列に合わせたCSVを出力し、そのままSupabaseへ投入できます。
+
+1. JSON-LD (`application/ld+json`) を含むページからイベントを抽出してCSV生成
+
+```bash
+npm run scrape:events:csv -- \
+  --url https://example.com/events \
+  --out ./events_for_supabase.csv \
+  --category event
+```
+
+- KCIC専用例（`event_list`の独自HTMLを抽出、緯度経度はデフォルト値で補完）
+
+```bash
+npm run scrape:events:csv -- \
+  --url https://www.kcic.jp/event_list \
+  --kcic-max-pages 3 \
+  --default-lat 31.5966 \
+  --default-lng 130.5571 \
+  --out ./events_for_supabase.csv
+```
+
+- 複数URL指定: `--url` を複数回指定
+- URL一覧ファイル指定: `--urls-file ./urls.txt`
+
+2. CSVをSupabaseへ投入
+
+```bash
+SUPABASE_DATABASE_URL="postgresql://..." \
+npm run supabase:import:events:csv -- --file ./events_for_supabase.csv
+```
+
+- `SUPABASE_DATABASE_URL` が設定されていれば自動で `DATABASE_URL` として利用
+- Prisma `createMany(skipDuplicates: true)` でバッチ投入
 
 ## API summary
 
