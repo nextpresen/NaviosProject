@@ -18,6 +18,7 @@ import { imageSchema } from "@/lib/validations/event";
 import { MOCK_EVENTS } from "@/lib/mock-events";
 import { prisma } from "@/lib/prisma";
 import { getUserProfile } from "@/lib/user-profile";
+import { isArchivedEvent } from "@/lib/event-archive";
 
 const statusSchema = z.enum(["all", "today", "upcoming", "ended"]);
 const querySchema = z.object({
@@ -102,6 +103,10 @@ function filterEvents(
   });
 }
 
+function filterActiveFeedEvents(events: Event[]) {
+  return events.filter((event) => !isArchivedEvent(event));
+}
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const parsed = querySchema.safeParse({
@@ -130,7 +135,8 @@ export async function GET(request: Request) {
   try {
     const rows = await prisma.event.findMany({ orderBy: { created_at: "desc" } });
     const events = rows.map(toEvent);
-    const filtered = filterEvents(events, params);
+    const activeEvents = filterActiveFeedEvents(events);
+    const filtered = filterEvents(activeEvents, params);
     return NextResponse.json({ ...ok({ events: filtered }), events: filtered });
   } catch (error) {
     console.error("GET /api/events failed:", error);
@@ -140,7 +146,8 @@ export async function GET(request: Request) {
         { status: 503 },
       );
     }
-    const filtered = filterEvents(MOCK_EVENTS, params);
+    const activeEvents = filterActiveFeedEvents(MOCK_EVENTS);
+    const filtered = filterEvents(activeEvents, params);
     return NextResponse.json({ ...ok({ events: filtered }), events: filtered });
   }
 }

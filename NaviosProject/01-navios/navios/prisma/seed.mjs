@@ -32,6 +32,7 @@ const events = [
     event_date: isoDate(0),
     expire_date: isoDate(0),
     event_image: "https://placehold.co/800x480/f59e0b/ffffff?text=Spring+Festival",
+    popularity_score: 88,
   },
   {
     id: "evt-002",
@@ -49,6 +50,7 @@ const events = [
     event_date: isoDate(0),
     expire_date: isoDate(0),
     event_image: "https://placehold.co/800x480/ef4444/ffffff?text=Photo+Walk",
+    popularity_score: 73,
   },
   {
     id: "evt-003",
@@ -66,6 +68,7 @@ const events = [
     event_date: isoDate(2),
     expire_date: isoDate(2),
     event_image: "https://placehold.co/800x480/22c55e/ffffff?text=Special+Lunch",
+    popularity_score: 61,
   },
   {
     id: "evt-004",
@@ -83,6 +86,7 @@ const events = [
     event_date: isoDate(5),
     expire_date: isoDate(5),
     event_image: "https://placehold.co/800x480/6366f1/ffffff?text=Night+Hike",
+    popularity_score: 54,
   },
   {
     id: "evt-005",
@@ -100,6 +104,7 @@ const events = [
     event_date: isoDate(-3),
     expire_date: isoDate(-1),
     event_image: "https://placehold.co/800x480/ec4899/ffffff?text=Sakura+Light",
+    popularity_score: 97,
   },
   {
     id: "evt-006",
@@ -117,6 +122,7 @@ const events = [
     event_date: isoDate(-10),
     expire_date: isoDate(-10),
     event_image: "https://placehold.co/800x480/f97316/ffffff?text=Seafood+BBQ",
+    popularity_score: 91,
   },
 ];
 
@@ -139,6 +145,7 @@ async function main() {
         event_date: new Date(event.event_date),
         expire_date: new Date(event.expire_date),
         event_image: event.event_image,
+        popularity_score: event.popularity_score ?? 0,
       },
       create: {
         id: event.id,
@@ -156,6 +163,7 @@ async function main() {
         event_date: new Date(event.event_date),
         expire_date: new Date(event.expire_date),
         event_image: event.event_image,
+        popularity_score: event.popularity_score ?? 0,
       },
     });
   }

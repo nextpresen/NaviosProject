@@ -24,6 +24,7 @@ export default function HomePage() {
   const mapProvider = getClientMapProvider();
   const isMobile = useMediaQuery("(max-width: 1024px)");
   const [events, setEvents] = useState<Event[]>([]);
+  const [popularPastEvents, setPopularPastEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [isPcCardPopupOpen, setPcCardPopupOpen] = useState(false);
 
@@ -41,19 +42,36 @@ export default function HomePage() {
     const loadEvents = async () => {
       setLoading(true);
       try {
-        const response = await fetch("/api/events", { cache: "no-store" });
-        if (!response.ok) {
+        const [eventsResponse, popularPastResponse] = await Promise.all([
+          fetch("/api/events", { cache: "no-store" }),
+          fetch("/api/events/popular-past?limit=3", { cache: "no-store" }),
+        ]);
+
+        if (!eventsResponse.ok) {
           setEvents(MOCK_EVENTS);
+          setPopularPastEvents([]);
           return;
         }
-        const payload = (await response.json()) as {
+        const payload = (await eventsResponse.json()) as {
           ok?: boolean;
           events?: Event[];
           data?: { events?: Event[] };
         };
         setEvents(payload.events ?? payload.data?.events ?? []);
+
+        if (popularPastResponse.ok) {
+          const popularPayload = (await popularPastResponse.json()) as {
+            ok?: boolean;
+            events?: Event[];
+            data?: { events?: Event[] };
+          };
+          setPopularPastEvents(popularPayload.events ?? popularPayload.data?.events ?? []);
+        } else {
+          setPopularPastEvents([]);
+        }
       } catch {
         setEvents(MOCK_EVENTS);
+        setPopularPastEvents([]);
       } finally {
         setLoading(false);
       }
@@ -77,6 +95,17 @@ export default function HomePage() {
         dateRangeText: formatEventSchedule(event),
       })),
     [filteredEvents],
+  );
+
+  const sidebarPopularPastEvents: EventCardData[] = useMemo(
+    () =>
+      popularPastEvents.map((event) => ({
+        ...event,
+        status: getEventStatus(event),
+        daysText: daysUntilText(event),
+        dateRangeText: formatEventSchedule(event),
+      })),
+    [popularPastEvents],
   );
 
   const selectedEvent = useMemo(
@@ -122,6 +151,7 @@ export default function HomePage() {
           searchQuery={searchQuery}
           activeFilter={filter}
           events={sidebarEvents}
+          popularPastEvents={sidebarPopularPastEvents}
           selectedEventId={selectedEventId}
           onSearchChange={setSearchQuery}
           searchResults={searchResults}

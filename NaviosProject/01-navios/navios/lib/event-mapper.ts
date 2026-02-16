@@ -17,6 +17,7 @@ type EventRow = {
   expire_date: Date;
   event_image: string;
   tags_json: string;
+  popularity_score: number;
 };
 
 export function toEvent(input: EventRow): Event {
@@ -38,5 +39,6 @@ export function toEvent(input: EventRow): Event {
     expire_date: input.expire_date.toISOString().slice(0, 10),
     event_image: input.event_image,
     tags: parseTagsJSON(input.tags_json),
+    popularity_score: input.popularity_score,
   };
 }

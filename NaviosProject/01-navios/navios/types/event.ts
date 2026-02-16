@@ -33,6 +33,7 @@ export interface Event {
   expire_date: string;
   event_image: string;
   tags: EventTag[];
+  popularity_score?: number;
 }
 
 export type EventStatus = "today" | "upcoming" | "ended";

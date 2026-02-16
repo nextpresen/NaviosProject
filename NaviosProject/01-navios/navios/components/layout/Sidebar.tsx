@@ -8,6 +8,7 @@ interface SidebarProps {
   searchQuery: string;
   activeFilter: FilterType;
   events: EventCardData[];
+  popularPastEvents?: EventCardData[];
   selectedEventId?: string | null;
   onSearchChange?: (value: string) => void;
   searchResults?: SearchResultItem[];
@@ -21,6 +22,7 @@ export function Sidebar({
   searchQuery,
   activeFilter,
   events,
+  popularPastEvents = [],
   selectedEventId,
   onSearchChange,
   searchResults = [],
@@ -103,6 +105,27 @@ export function Sidebar({
               ))}
             </div>
           </details>
+
+          <details className="rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2" open={popularPastEvents.length > 0}>
+            <summary className="cursor-pointer list-none flex items-center justify-between text-[11px] font-bold text-amber-700">
+              <span>PAST POPULAR</span>
+              <span className="text-amber-600">{popularPastEvents.length}</span>
+            </summary>
+            <div className="mt-2 space-y-2.5">
+              {popularPastEvents.length === 0 ? (
+                <p className="px-1 text-[11px] text-slate-500">表示できる過去人気イベントはまだありません。</p>
+              ) : (
+                popularPastEvents.map((event) => (
+                  <EventCard
+                    key={event.id}
+                    event={event}
+                    active={selectedEventId === event.id}
+                    onClick={onSelectEvent}
+                  />
+                ))
+              )}
+            </div>
+          </details>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto custom-scroll p-3 space-y-2.5">
@@ -114,6 +137,22 @@ export function Sidebar({
               onClick={onSelectEvent}
             />
           ))}
+          {popularPastEvents.length > 0 ? (
+            <section className="mt-3 space-y-2.5 rounded-xl border border-amber-200 bg-amber-50/60 px-3 py-2">
+              <div className="px-1 flex items-center justify-between">
+                <p className="text-[11px] font-extrabold tracking-wide text-amber-700">PAST POPULAR</p>
+                <span className="text-[11px] font-semibold text-amber-600">{popularPastEvents.length}</span>
+              </div>
+              {popularPastEvents.map((event) => (
+                <EventCard
+                  key={event.id}
+                  event={event}
+                  active={selectedEventId === event.id}
+                  onClick={onSelectEvent}
+                />
+              ))}
+            </section>
+          ) : null}
         </div>
       )}
     </aside>

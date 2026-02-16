@@ -23,6 +23,7 @@ model Event {
   event_date        DateTime
   expire_date       DateTime
   event_image       String
+  popularity_score  Int      @default(0)
   created_at        DateTime @default(now())
   updated_at        DateTime @updatedAt
 }
