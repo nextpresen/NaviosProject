@@ -135,3 +135,28 @@ npx expo install expo-router
 - 予定構成に沿った画面ファイルの再配置
 - GitHub (nextpresen/NaviosProject 01_NaviosProject/NaviosProject/02-Mobile) へプッシュ
 - docs/progress/ 作成・progress.md・changelog.md 初版作成
+
+---
+
+## 2026-03-09 — 開発環境セットアップ・動作確認
+
+### 問題解決: エミュレーター青くるくる（接続不可）
+- **原因**: WSL上のMetroバンドラーにAndroidエミュレーター（Windows側）から届かない
+- **解決**:  を使用（ngrok経由でトンネル）
+-  では解決しないことを確認
+
+### 問題解決: npm install ERESSOLVEエラー
+- **原因**:  後に  を実行するとpeer依存関係の競合
+- **解決手順**:
+  1. 
+added 473 packages in 1m
+
+41 packages are looking for funding
+  run `npm fund` for details
+  2. 
+  3. 
+
+### GitHub push 完了
+- リポジトリ: 
+- パス: 
+- コミット: 

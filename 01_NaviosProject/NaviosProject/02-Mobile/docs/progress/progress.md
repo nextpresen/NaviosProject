@@ -1,6 +1,6 @@
 # Progress
 
-最終更新: 2026-03-09
+最終更新: 2026-03-09（開発環境確認・push完了）
 
 ## 全体進捗
 
@@ -14,6 +14,10 @@
 ---
 
 ## 完了したこと
+
+### 開発環境確認（2026-03-09）
+- WSL + Androidエミュレーター: `--tunnel` モードで動作確認
+- GitHub push 完了（nextpresen/NaviosProject 02-Mobile）
 
 ### 基盤・構成（2026-03-08）
 - mobile/ の既存実装をベースに NaviOs/ → Mobile/ として再配置
