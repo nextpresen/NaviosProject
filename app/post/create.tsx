@@ -141,6 +141,10 @@ export default function CreatePostScreen() {
       Alert.alert('入力エラー', 'タイトルを入力してください');
       return;
     }
+    if (!form.place && !coords) {
+      Alert.alert('位置情報エラー', '場所を設定するか、位置情報を許可してください');
+      return;
+    }
     setIsSubmitting(true);
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -148,12 +152,29 @@ export default function CreatePostScreen() {
         Alert.alert('エラー', 'ログインが必要です');
         return;
       }
-      await createPost(form, user.id);
+      const formWithPlace = form.place
+        ? form
+        : {
+            ...form,
+            place: {
+              name: '現在地付近',
+              address: '',
+              latitude: coords!.latitude,
+              longitude: coords!.longitude,
+            },
+          };
+      await createPost(formWithPlace, user.id);
       Alert.alert('投稿しました！', '', [
         { text: 'OK', onPress: () => { setForm(INITIAL_FORM); router.back(); } },
       ]);
     } catch (e) {
-      Alert.alert('投稿に失敗しました', e instanceof Error ? e.message : '通信エラーが発生しました');
+      const msg =
+        e instanceof Error
+          ? e.message
+          : typeof e === 'object' && e !== null && 'message' in e
+          ? String((e as { message: unknown }).message)
+          : JSON.stringify(e);
+      Alert.alert('投稿に失敗しました', msg);
     } finally {
       setIsSubmitting(false);
     }

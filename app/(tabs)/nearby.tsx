@@ -127,59 +127,55 @@ export default function NearbyScreen() {
       posts.filter((p) => p.category === id).length,
     ])
   ) as Record<CategoryId, number>;
-
   return (
     <View style={styles.container}>
       {/* 地図エリア（プレースホルダー） */}
       <View style={styles.mapPlaceholder}>
-        <Text style={styles.mapText}>🗺️ 地図エリア</Text>
-        <Text style={styles.mapSubText}>MapLibre を実装予定</Text>
+          <Text style={styles.mapText}>Map Placeholder</Text>
+          <Text style={styles.mapSubText}>地図は準備中です</Text>
 
-        {/* 現在地マーカー */}
-        <View style={styles.locationMarker}>
-          <Animated.View style={[
-            styles.locationPing,
-            { transform: [{ scale: pingScale }], opacity: pingOpacity },
-          ]} />
-          <View style={styles.locationDot}>
-            <Ionicons name="navigate" size={14} color="#fff" />
+          <View style={styles.locationMarker}>
+            <Animated.View style={[
+              styles.locationPing,
+              { transform: [{ scale: pingScale }], opacity: pingOpacity },
+            ]} />
+            <View style={styles.locationDot}>
+              <Ionicons name="navigate" size={14} color="#fff" />
+            </View>
           </View>
-        </View>
 
-        {/* 投稿ピン */}
-        {sorted.slice(0, PIN_POSITIONS.length).map((post, i) => {
-          const cat      = getCategoryInfo(post.category);
-          const iconName = getCategoryIconName(post.category) as keyof typeof Ionicons.glyphMap;
-          const pos       = PIN_POSITIONS[i];
-          const isSelected = selectedPost?.id === post.id;
-          return (
-            <TouchableOpacity
-              key={post.id}
-              style={[styles.pin, { top: pos.top, left: pos.left }]}
-              onPress={() => {
-                setSelectedPost(post);
-                if (sheetState === 'closed') animateSheet('half');
-              }}
-              activeOpacity={0.85}
-            >
-              <View style={[
-                styles.pinCircle,
-                { backgroundColor: cat.color },
-                isSelected && styles.pinCircleSelected,
-              ]}>
-                <Ionicons name={iconName} size={16} color="#fff" />
-              </View>
-              {post.urgency === 'high' && (
-                <View style={styles.pinUrgency}>
-                  <Text style={styles.pinUrgencyText}>!</Text>
+          {sorted.slice(0, PIN_POSITIONS.length).map((post, i) => {
+            const cat = getCategoryInfo(post.category);
+            const iconName = getCategoryIconName(post.category) as keyof typeof Ionicons.glyphMap;
+            const pos = PIN_POSITIONS[i];
+            const isSelected = selectedPost?.id === post.id;
+            return (
+              <TouchableOpacity
+                key={post.id}
+                style={[styles.pin, { top: pos.top, left: pos.left }]}
+                onPress={() => {
+                  setSelectedPost(post);
+                  if (sheetState === 'closed') animateSheet('half');
+                }}
+                activeOpacity={0.85}
+              >
+                <View style={[
+                  styles.pinCircle,
+                  { backgroundColor: cat.color },
+                  isSelected && styles.pinCircleSelected,
+                ]}>
+                  <Ionicons name={iconName} size={16} color="#fff" />
                 </View>
-              )}
-            </TouchableOpacity>
-          );
-        })}
+                {post.urgency === 'high' && (
+                  <View style={styles.pinUrgency}>
+                    <Text style={styles.pinUrgencyText}>!</Text>
+                  </View>
+                )}
+              </TouchableOpacity>
+            );
+          })}
       </View>
 
-      {/* ヘッダー */}
       <SafeAreaView style={styles.headerContainer} edges={['top']}>
         <View style={styles.headerRow}>
           <View style={styles.logoRow}>
@@ -281,6 +277,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   // ─── 地図 ─────────────────────────────────────────────
+  map: {
+    ...StyleSheet.absoluteFillObject,
+  },
   mapPlaceholder: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: '#D1FAE5',

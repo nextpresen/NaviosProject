@@ -2,7 +2,7 @@
  * DetailScreen - 投稿詳細画面
  * mock.jsx: view === 'detail' の画面
  */
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -39,13 +39,14 @@ export default function DetailScreen() {
   const [liked, setLiked] = useState(false);
   const [likeCount, setLikeCount] = useState(0);
 
+  const likeScale = useRef(new Animated.Value(1)).current;
+
   useEffect(() => {
     if (post) setLikeCount(post.likeCount ?? 0);
   }, [post]);
 
   if (postLoading) return null;
   if (!post) return null;
-  const likeScale = useRef(new Animated.Value(1)).current;
   const comments = MOCK_COMMENTS.slice(0, visibleCount);
   const remaining = MOCK_COMMENTS.length - visibleCount;
   const action = CATEGORY_ACTIONS[post.category];

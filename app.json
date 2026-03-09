@@ -22,7 +22,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.anonymous.mobile"
     },
     "web": {
       "bundler": "metro",
@@ -30,7 +31,7 @@
     },
     "plugins": [
       "expo-router",
-      "expo-asset"
+      "expo-asset",
     ]
   }
 }

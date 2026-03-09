@@ -1,6 +1,95 @@
 # Changelog
 
-最終更新: 2026-03-09
+最終更新: 2026-03-10
+
+## 2026-03-10 — MapLibre 依存削除・地図実装リセット
+
+### 背景
+
+`@maplibre/maplibre-react-native` をインストール済みだったが、ネイティブモジュールエラーが発生。
+根本原因は「ネイティブビルド（android/）が maplibre インストール前に生成されていたため、
+ネイティブコードに maplibre が組み込まれていなかった」こと。
+
+本来の解決策は `expo prebuild --clean` → `expo run:android` の再ビルドだが、
+地図実装方式（maplibre / react-native-maps / WebView 等）を改めて検討する方針のため、
+一旦すべての maplibre 依存を削除してクリーンな状態に戻した。
+
+### 変更内容
+
+#### app.json
+- `plugins` から `"@maplibre/maplibre-react-native"` を削除
+
+#### package.json
+- `dependencies` から `"@maplibre/maplibre-react-native": "^10.4.2"` を削除
+
+#### app/(tabs)/nearby.tsx
+- `MapLibreModule` 型定義を削除
+- `require('@maplibre/maplibre-react-native')` の try/catch ブロックを削除
+- `MAPTILER_KEY` / `MAP_STYLE` / `DEFAULT_CENTER` 定数を削除
+- `MLNMapView` / `MLNCamera` / `MLNUserLocation` / `MLNPointAnnotation` の参照をすべて削除
+- 地図エリアをプレースホルダー（`<View style={styles.mapPlaceholder}>`）のみに統一
+
+#### node_modules（手動作業が必要）
+- `npm uninstall @maplibre/maplibre-react-native` を実行して node_modules から除去すること
+
+### 現在の nearby.tsx 地図エリアの状態
+- プレースホルダー表示（緑背景 + "Map Placeholder" テキスト + 現在地ピンアニメーション + 投稿ピン）
+- 実際の地図は表示されない（次回実装時に差し替え予定）
+
+### 次の地図実装時の方針（未決定）
+
+以下のいずれかを選択して再実装する:
+
+| 選択肢 | 特徴 | 注意点 |
+|---|---|---|
+| `@maplibre/maplibre-react-native` 再導入 | MapTiler 連携・OSS | `expo prebuild --clean` + ネイティブ再ビルド必須 |
+| `react-native-maps` | Expo 標準に近い | Google Maps API が必要（コスト発生の可能性） |
+| WebView + Leaflet.js | ネイティブビルド不要 | パフォーマンスはやや劣る |
+
+---
+
+## 2026-03-09 — Supabase DB・RLS・Storage 構築 + 投稿作成動作確認
+
+### Supabase テーブル作成
+- 拡張機能: `uuid-ossp` / `postgis` / `pg_trgm` を有効化
+- テーブル: `users` / `places` / `posts` / `post_details` / `post_images` / `comments` を作成
+- `places` に `update_place_location` トリガー（latitude/longitude → geography 自動変換）
+- `get_nearby_posts` RPC 関数を作成（PostGIS ST_DWithin による半径フィルタ + ST_Distance 距離計算）
+- 伊集院エリアの初期スポット4件を挿入
+
+### RLS ポリシー設定
+- 全テーブルで `ENABLE ROW LEVEL SECURITY`
+- SELECT: 全テーブル全員公開（postsは is_ended=FALSE かつ未期限のみ）
+- INSERT/UPDATE: 本人または親投稿の author_id と一致する場合のみ許可
+
+### Supabase Storage 設定
+- `post-images` バケット作成（Public、5MB制限、画像MIMEのみ許可）
+
+### Auth → users 自動同期トリガー
+- `on_auth_user_created` トリガー設定（`auth.users` INSERT → `public.users` 自動INSERT）
+- トリガー設定前の既存ユーザーは手動SQLで `public.users` に挿入
+
+### バグ修正
+
+#### app/post/create.tsx
+- `handleSubmit` のエラーハンドリングを改善（Supabase PostgrestError の `.message` を表示）
+- 場所未設定時に GPS 座標を自動セットする処理を追加
+  - `form.place` なし + `coords` あり → `現在地付近` として自動セット
+  - `form.place` なし + `coords` なし → バリデーションエラー
+
+#### app/post/[id].tsx
+- `useEffect` が import に含まれていなかった問題を修正
+- `useRef(new Animated.Value(1))` が early return の後に呼ばれていた Hooks ルール違反を修正
+
+#### hooks/useLocation.ts
+- GPS 取得失敗時に `__DEV__` のみ伊集院町座標（31.6234, 130.3856）をフォールバックとして返す処理を追加
+
+### 動作確認
+- 投稿作成 → Supabase DB insert + Storage 画像アップロード ✅
+- 投稿一覧に表示 ✅
+- 投稿詳細画面表示 ✅
+
+---
 
 ## 2026-03-09 — Supabase Auth 接続
 

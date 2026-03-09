@@ -1,6 +1,6 @@
 # Progress
 
-最終更新: 2026-03-09（不要ファイル整理完了）
+最終更新: 2026-03-10（MapLibre 削除・地図実装方針リセット）
 
 ## 全体進捗
 
@@ -10,16 +10,63 @@
 - **Phase 1 UI実装（mock移植）: ✅ 完了**
 - **Expo Router本実装: ✅ 完了**
 - **Supabase Auth 接続: ✅ 完了**（ログイン・ログアウト・認証ガード）
-- **hooks/useLocation.ts 実装: ✅ 完了**（expo-location、権限要求・GPS取得）
+- **hooks/useLocation.ts 実装: ✅ 完了**（expo-location、権限要求・GPS取得・開発用フォールバック）
 - **hooks/usePosts.ts + Supabase API 接続: ✅ 完了**（PostGIS RPC + JOIN クエリ）
 - **lib/mockData.ts 依存の段階移行: ✅ 完了**（全画面でフックに切り替え済み）
-- **投稿作成 → Supabase DB insert + Storage 画像アップロード: ✅ 完了**
+- **Supabase テーブル・RLS・Storage 設定: ✅ 完了**
+- **投稿作成 → Supabase DB insert + Storage 画像アップロード: ✅ 完了・動作確認済**
 - **不要ファイル整理: ✅ 完了**（死コード削除・外部残骸削除）
-- MapLibre GL 実地図表示: ⬜ 未着手
+- **MapLibre 依存 削除: ✅ 完了**（ネイティブモジュールエラーにより一旦撤去）
+- 地図表示（実装方法未定）: ⬜ 未着手
 
 ---
 
 ## 完了したこと
+
+### Supabase DB・RLS・Storage 構築 + 投稿作成動作確認（2026-03-09）
+
+#### Supabase テーブル作成（SQL Editor で実行）
+- `uuid-ossp` / `postgis` / `pg_trgm` 拡張を有効化
+- テーブル作成順: `users` → `places` → `posts` → `post_details` → `post_images` → `comments`
+- `places` テーブルに `update_place_location` トリガーを設定（latitude/longitude → GEOGRAPHY(POINT) 自動変換）
+- `get_nearby_posts` RPC 関数を作成（PostGIS `ST_DWithin` + `ST_Distance` による距離計算）
+- 伊集院エリアの初期スポット4件を `places` テーブルに INSERT
+
+#### RLS ポリシー設定
+| テーブル | SELECT | INSERT | UPDATE | DELETE |
+|---|---|---|---|---|
+| users | 全員 | 本人のみ（`auth.uid() = id`） | 本人のみ | — |
+| places | 全員 | ログイン済みのみ | — | — |
+| posts | 全員（is_ended=FALSEかつ未期限） | 本人のみ（`auth.uid() = author_id`） | 本人のみ | — |
+| post_details | 全員 | 親postの author_id と一致する場合のみ | 同左 | — |
+| post_images | 全員 | 親postの author_id と一致する場合のみ | — | 同左 |
+| comments | 全員 | 本人のみ（`auth.uid() = author_id`） | — | — |
+
+#### Supabase Storage 設定
+- バケット名: `post-images`（Public）
+- ファイルサイズ上限: 5MB
+- 許可 MIME タイプ: `image/jpeg`, `image/png`, `image/webp`, `image/heic`
+
+#### Auth → users テーブル 自動同期トリガー
+- `handle_new_user()` 関数 + `on_auth_user_created` トリガーを設定
+- `auth.users` に INSERT → `public.users` に自動 INSERT
+- `display_name`: メタデータ優先、なければメールアドレスの `@` 前
+- `avatar`: メタデータ優先、なければ名前の頭文字（大文字）
+- トリガー設定前に登録済みのユーザーは手動 INSERT SQL で対応
+
+#### バグ修正
+- `app/post/create.tsx` の `handleSubmit` エラーハンドリングを改善
+  - Supabase の `PostgrestError`（`instanceof Error` でない）も `.message` を表示するよう修正
+- `app/post/create.tsx` の `handleSubmit` に場所自動セット処理を追加
+  - `form.place` 未設定かつ `coords` あり → `現在地付近` として GPS 座標を自動セットして投稿
+  - `form.place` 未設定かつ `coords` なし → エラーを表示して投稿をブロック
+  - これにより `posts.location` が NULL になり一覧に表示されない問題を解消
+- `app/post/[id].tsx` の `useEffect` が import に含まれていなかった問題を修正
+- `app/post/[id].tsx` の `useRef` が early return の後に呼ばれていた問題を修正（Hooks ルール違反）
+
+#### hooks/useLocation.ts に開発用フォールバック追加
+- エミュレーターで GPS が使えない場合、`__DEV__` 時のみ伊集院町の座標（31.6234, 130.3856）を返す
+- 本番ビルドでは従来通りエラーを返す
 
 ### 不要ファイル整理（2026-03-09）
 
@@ -182,9 +229,17 @@
 
 ### 高優先
 
-- **MapLibre GL による実地図表示**（`@maplibre/maplibre-react-native` 未インストール）
-  - `EXPO_PUBLIC_MAPTILER_KEY` 未設定
-  - 現在は `nearby.tsx` 内のプレースホルダー表示
+- **地図表示の実装方式を決定して実装する**
+  - `@maplibre/maplibre-react-native` は一旦削除済み（2026-03-10）
+  - 現在 `nearby.tsx` はプレースホルダー表示のみ
+  - 再実装前に以下の選択肢から方針を決める:
+    1. `@maplibre/maplibre-react-native` 再導入 → `expo prebuild --clean` + ネイティブ再ビルド必須
+    2. `react-native-maps` → Google Maps API 要検討
+    3. WebView + Leaflet.js → ネイティブビルド不要、パフォーマンスはやや劣る
+
+### 手動作業（未完了）
+
+- `npm uninstall @maplibre/maplibre-react-native` を実行して node_modules から削除する
 
 ### 低優先
 - プッシュ通知
