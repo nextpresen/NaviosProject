@@ -61,10 +61,12 @@ export default function PostCard({ post, isSelected, onPress }: Props) {
 const styles = StyleSheet.create({
   card: {
     width: 160,
+    height: 155,
     padding: 12,
     borderRadius: 12,
     borderWidth: 2,
     backgroundColor: '#fff',
+    justifyContent: 'space-between',
   },
   cardSelected: {
     // borderColor set dynamically

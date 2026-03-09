@@ -8,6 +8,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Colors } from '../../constants/colors';
+import { useAuth } from '../../hooks/useAuth';
 
 /** タブ定義（インデックス順 = state.index と対応） */
 const TAB_ITEMS = [
@@ -24,6 +25,16 @@ const TAB_ITEMS = [
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
+  const { session } = useAuth();
+
+  /** 認証が必要な操作のガード。未ログインならログイン画面へ遷移 */
+  const requireAuth = (action: () => void) => {
+    if (session) {
+      action();
+    } else {
+      router.push('/auth/login');
+    }
+  };
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
@@ -42,7 +53,7 @@ function CustomTabBar({ state, navigation }: BottomTabBarProps) {
       {/* 投稿ボタン（中央） */}
       <TouchableOpacity
         style={styles.postButton}
-        onPress={() => router.push('/post/create')}
+        onPress={() => requireAuth(() => router.push('/post/create'))}
         activeOpacity={0.85}
       >
         <Ionicons name="add" size={28} color="#fff" />

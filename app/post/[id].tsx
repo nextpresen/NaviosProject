@@ -10,7 +10,6 @@ import {
   ScrollView,
   TextInput,
   Image,
-  StyleSheet,
   Linking,
   Share,
   Animated,
@@ -27,6 +26,7 @@ import { CATEGORY_ACTIONS } from '../../constants/categories';
 import { Colors } from '../../constants/colors';
 import { MOCK_COMMENTS } from '../../lib/mockData';
 import { usePost } from '../../hooks/usePost';
+import { styles } from '../../components/post/PostDetailStyles';
 
 const PAGE_SIZE = 3;
 
@@ -118,7 +118,7 @@ export default function DetailScreen() {
           {/* いいね・コメント数 */}
           <View style={styles.engagementRow}>
             <TouchableOpacity style={styles.engagementBtn} onPress={handleLike} activeOpacity={0.7}>
-              <Animated.View style={{ transform: [{ scale: likeScale }] }}>
+              <Animated.View style={[styles.likeIcon, { transform: [{ scale: likeScale }] }]}>
                 <Ionicons
                   name={liked ? 'heart' : 'heart-outline'}
                   size={20}
@@ -221,130 +221,3 @@ export default function DetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 8,
-    paddingVertical: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: Colors.border,
-  },
-  headerButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 8 },
-  image: { width: '100%', height: 192, resizeMode: 'cover' },
-  body: { padding: 16, gap: 16 },
-  postTitle: { fontSize: 22, fontWeight: '700', color: Colors.textPrimary, lineHeight: 30 },
-  authorRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  authorNameRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  authorName: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  time: { fontSize: 12, color: Colors.textSecondary },
-  placeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 12,
-  },
-  placeIconBox: {
-    width: 40,
-    height: 40,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
-    elevation: 1,
-  },
-  placeInfo: { flex: 1 },
-  placeName: { fontSize: 14, fontWeight: '600', color: Colors.textPrimary },
-  placeAddress: { fontSize: 12, color: Colors.textSecondary },
-  placeDistance: { alignItems: 'flex-end' },
-  distanceText: { fontSize: 14, fontWeight: '700' },
-  walkText: { fontSize: 11, color: Colors.textSecondary },
-  content: { fontSize: 15, color: Colors.textPrimary, lineHeight: 24 },
-  commentsSection: { gap: 12 },
-  commentsTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  commentsTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
-  commentList: { gap: 12 },
-  loadMoreButton: { padding: 10, alignItems: 'center' },
-  loadMoreText: { fontSize: 13, color: Colors.primary, fontWeight: '600' },
-  footer: {
-    padding: 12,
-    paddingBottom: 4,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    gap: 10,
-  },
-  commentInputRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  commentInput: {
-    flex: 1,
-    height: 40,
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 20,
-    paddingHorizontal: 16,
-    fontSize: 14,
-    color: Colors.textPrimary,
-  },
-  sendButton: {
-    width: 40,
-    height: 40,
-    backgroundColor: Colors.primary,
-    borderRadius: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  actionRow: { flexDirection: 'row', gap: 10 },
-  navButton: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    padding: 12,
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 12,
-  },
-  navButtonText: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
-  actionButton: { flex: 1, padding: 12, borderRadius: 12, alignItems: 'center' },
-  actionButtonText: { fontSize: 14, fontWeight: '700', color: '#fff' },
-  engagementRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 12,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
-  },
-  engagementBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 4,
-  },
-  engagementDivider: {
-    width: 1,
-    height: 20,
-    backgroundColor: Colors.border,
-  },
-  engagementCount: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  engagementCountLiked: {
-    color: '#F43F5E',
-  },
-  engagementLabel: {
-    fontSize: 12,
-    color: Colors.textSecondary,
-  },
-});

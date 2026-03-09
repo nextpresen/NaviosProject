@@ -85,23 +85,6 @@ export type PostFormData = {
   place?: Place;
 } & PostDetails;
 
-// マイページの投稿サマリー（ProfileScreen用）
-export type MyPost = {
-  id: number;
-  /** カテゴリID */
-  category: CategoryId;
-  /** 投稿タイトル */
-  title: string;
-  /** 投稿からの経過時間 */
-  time: string;
-  /** 公開中 or 終了済み */
-  status: 'active' | 'ended';
-  /** 閲覧数 */
-  views: number;
-  /** コメント数 */
-  comments: number;
-};
-
 // 検索画面のトレンド投稿（SearchScreen用）
 export type TrendingPost = {
   id: number;

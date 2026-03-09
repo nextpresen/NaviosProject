@@ -1,18 +1,7 @@
 /**
  * mock.jsx のモックデータを React Native 型に合わせて変換
  */
-import { Post, User, Comment, MyPost, TrendingPost, PastHotPost } from '../types';
-
-export const MOCK_CURRENT_USER: User & { stats: { posts: number; helped: number; comments: number } } = {
-  id: 'user_current',
-  displayName: '田中太郎',
-  avatar: '田',
-  verified: true,
-  bio: '伊集院町で八百屋をやっています。新鮮な野菜をお届け！',
-  phone: '090-1234-5678',
-  location: '伊集院町在住',
-  stats: { posts: 12, helped: 5, comments: 28 },
-};
+import { Post, User, Comment, TrendingPost, PastHotPost } from '../types';
 
 const USERS: Record<string, User> = {
   user_001: { id: 'user_001', displayName: '田中商店', verified: true, avatar: '田', phone: '099-123-4567' },
@@ -176,10 +165,4 @@ export const MOCK_PAST_HOT: PastHotPost[] = [
   { id: 201, category: 'event', title: '夏祭り盆踊り大会', spotName: '妙円寺公園', time: '2024/8/15', comments: 89, likes: 234, participants: 150 },
   { id: 202, category: 'help', title: '台風19号 復旧ボランティア', spotName: '伊集院町全域', time: '2024/9/22', comments: 156, likes: 412, participants: 80 },
   { id: 203, category: 'event', title: '新春もちつき大会', spotName: '伊集院公民館', time: '2024/1/3', comments: 67, likes: 189, participants: 120 },
-];
-
-export const MOCK_MY_POSTS: MyPost[] = [
-  { id: 101, category: 'stock', title: '卵入荷しました（残り少）', time: '30分前', status: 'active', views: 45, comments: 6 },
-  { id: 102, category: 'help', title: '薪運びを手伝ってください', time: '2日前', status: 'active', views: 89, comments: 12 },
-  { id: 103, category: 'event', title: '朝市のお知らせ', time: '1週間前', status: 'ended', views: 234, comments: 45 },
 ];

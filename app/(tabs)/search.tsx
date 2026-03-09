@@ -103,12 +103,6 @@ export default function SearchScreen() {
               ))}
             </Section>
 
-            <Section iconName="time-outline" iconColor="#7C3AED" iconBg="#EDE9FE" title="過去の盛り上がり">
-              {MOCK_PAST_HOT.map((post) => (
-                <PastHotItem key={post.id} post={post} onPress={() => handleTrendPress(post.category)} />
-              ))}
-            </Section>
-
             <Section iconName="grid-outline" iconColor="#059669" iconBg="#D1FAE5" title="カテゴリから探す">
               <View style={styles.categoryGrid}>
                 {CATEGORIES.map((cat) => {
@@ -132,6 +126,12 @@ export default function SearchScreen() {
                   );
                 })}
               </View>
+            </Section>
+
+            <Section iconName="time-outline" iconColor="#7C3AED" iconBg="#EDE9FE" title="過去の盛り上がり">
+              {MOCK_PAST_HOT.map((post) => (
+                <PastHotItem key={post.id} post={post} onPress={() => handleTrendPress(post.category)} />
+              ))}
             </Section>
           </>
         )}

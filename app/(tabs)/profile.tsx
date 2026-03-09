@@ -1,6 +1,6 @@
 /**
  * ProfileScreen - マイページ
- * mock.jsx: view === 'profile' の画面
+ * Supabase からログインユーザーの情報・投稿を取得して表示する
  */
 import React, { useState } from 'react';
 import {
@@ -9,17 +9,19 @@ import {
   TouchableOpacity,
   ScrollView,
   StyleSheet,
+  ActivityIndicator,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import UserAvatar from '../../components/common/UserAvatar';
-import CategoryBadge from '../../components/common/CategoryBadge';
 import { useRouter } from 'expo-router';
 import { Colors } from '../../constants/colors';
-import { MOCK_CURRENT_USER, MOCK_MY_POSTS } from '../../lib/mockData';
-import { CategoryId } from '../../constants/categories';
-import { MyPost } from '../../types';
 import { signOut } from '../../lib/auth';
+import { useAuth } from '../../hooks/useAuth';
+import { useProfile } from '../../hooks/useProfile';
+import { useMyPosts } from '../../hooks/useMyPosts';
+import ProfileCard from '../../components/profile/ProfileCard';
+import MyPostsCard from '../../components/profile/MyPostsCard';
 
 type PostTab = 'active' | 'ended';
 
@@ -35,22 +37,76 @@ const SETTING_ITEMS: SettingItem[] = [
   { iconName: 'lock-closed-outline', label: 'プライバシー', sub: '公開範囲の設定' },
 ];
 
+/**
+ * マイページ画面
+ * ユーザープロフィール・活動統計・自分の投稿・設定を表示する
+ */
 export default function ProfileScreen() {
   const [postTab, setPostTab] = useState<PostTab>('active');
   const router = useRouter();
-  const user = MOCK_CURRENT_USER;
+  const { session } = useAuth();
+  const { profile, loading: profileLoading } = useProfile();
+  const { posts: myPosts, loading: postsLoading } = useMyPosts();
 
+  /** ログアウト処理 */
   const handleLogout = async () => {
-    await signOut();
-    router.replace('/auth/login');
+    try {
+      await signOut();
+      router.replace('/auth/login');
+    } catch {
+      Alert.alert('エラー', 'ログアウトに失敗しました');
+    }
   };
-  const activePosts = MOCK_MY_POSTS.filter((p) => p.status === 'active');
-  const endedPosts = MOCK_MY_POSTS.filter((p) => p.status === 'ended');
-  const displayPosts = postTab === 'active' ? activePosts : endedPosts;
+
+  /* 未ログイン時：ログイン誘導UI */
+  if (!session) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.header}>
+          <Text style={styles.title}>マイページ</Text>
+        </View>
+        <View style={styles.guestWrap}>
+          <View style={styles.guestIconCircle}>
+            <Ionicons name="person-outline" size={40} color={Colors.textMuted} />
+          </View>
+          <Text style={styles.guestTitle}>ログインしていません</Text>
+          <Text style={styles.guestSub}>ログインすると投稿の作成や{'\n'}活動履歴の確認ができます</Text>
+          <TouchableOpacity style={styles.loginBtn} onPress={() => router.push('/auth/login')}>
+            <Text style={styles.loginBtnText}>ログイン</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/auth/register')}>
+            <Text style={styles.registerLink}>アカウントをお持ちでない方はこちら</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (profileLoading) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingWrap}>
+          <ActivityIndicator size="large" color={Colors.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.loadingWrap}>
+          <Text style={styles.errorText}>プロフィールを取得できませんでした</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  const activePosts = myPosts.filter((p) => p.status === 'active');
+  const endedPosts = myPosts.filter((p) => p.status === 'ended');
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ヘッダー */}
       <View style={styles.header}>
         <Text style={styles.title}>マイページ</Text>
         <TouchableOpacity style={styles.settingsBtn}>
@@ -59,29 +115,12 @@ export default function ProfileScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        {/* プロフィールカード */}
-        <View style={styles.card}>
-          <View style={styles.profileRow}>
-            <UserAvatar avatar={user.avatar} size={64} backgroundColor="#A7F3D0" />
-            <View style={styles.profileInfo}>
-              <View style={styles.nameRow}>
-                <Text style={styles.displayName}>{user.displayName}</Text>
-                {user.verified && (
-                  <View style={styles.verifiedBadge}>
-                    <Ionicons name="checkmark-circle" size={12} color="#059669" />
-                    <Text style={styles.verifiedText}>認証済み</Text>
-                  </View>
-                )}
-              </View>
-              <Text style={styles.location}>{user.location}</Text>
-              <Text style={styles.bio}>{user.bio}</Text>
-            </View>
-          </View>
-          <TouchableOpacity style={styles.editButton}>
-            <Ionicons name="pencil-outline" size={14} color={Colors.textPrimary} />
-            <Text style={styles.editButtonText}>プロフィールを編集</Text>
-          </TouchableOpacity>
-        </View>
+        <ProfileCard
+          displayName={profile.displayName}
+          avatar={profile.avatar}
+          verified={profile.verified}
+          email={profile.email}
+        />
 
         {/* 活動統計 */}
         <View style={styles.card}>
@@ -90,84 +129,20 @@ export default function ProfileScreen() {
             <Text style={styles.sectionTitle}>あなたの活動</Text>
           </View>
           <View style={styles.statsRow}>
-            <StatBox label="投稿" value={user.stats!.posts} color="#059669" bg="#ECFDF5" />
-            <StatBox label="協力" value={user.stats!.helped} color="#BE123C" bg="#FFF1F2" />
-            <StatBox label="コメント" value={user.stats!.comments} color="#1D4ED8" bg="#EFF6FF" />
+            <StatBox label="投稿" value={profile.stats.posts} color="#059669" bg="#ECFDF5" />
+            <StatBox label="協力" value={profile.stats.helped} color="#BE123C" bg="#FFF1F2" />
+            <StatBox label="コメント" value={profile.stats.comments} color="#1D4ED8" bg="#EFF6FF" />
           </View>
         </View>
 
-        {/* 自分の投稿 */}
-        <View style={styles.card}>
-          <View style={styles.sectionTitleRow}>
-            <Ionicons name="document-text-outline" size={16} color={Colors.textPrimary} />
-            <Text style={styles.sectionTitle}>自分の投稿</Text>
-          </View>
-
-          {/* タブ */}
-          <View style={styles.tabRow}>
-            <TouchableOpacity
-              style={[styles.tab, postTab === 'active' && styles.tabActive]}
-              onPress={() => setPostTab('active')}
-            >
-              <Text style={[styles.tabText, postTab === 'active' && styles.tabTextActive]}>
-                公開中 ({activePosts.length})
-              </Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={[styles.tab, postTab === 'ended' && styles.tabEnded]}
-              onPress={() => setPostTab('ended')}
-            >
-              <Text style={[styles.tabText, postTab === 'ended' && styles.tabTextEnded]}>
-                終了済み ({endedPosts.length})
-              </Text>
-            </TouchableOpacity>
-          </View>
-
-          {/* 投稿リスト */}
-          <View style={styles.postList}>
-            {displayPosts.map((post: MyPost) => (
-              <View
-                key={post.id}
-                style={[styles.postItem, post.status === 'ended' && styles.postItemEnded]}
-              >
-                <CategoryBadge categoryId={post.category as CategoryId} size="sm" />
-                <View style={styles.postBody}>
-                  <Text
-                    style={[styles.postTitle, post.status === 'ended' && styles.postTitleEnded]}
-                    numberOfLines={1}
-                  >
-                    {post.title}
-                  </Text>
-                  <View style={styles.postMetaRow}>
-                    <Text style={styles.postMeta}>{post.time}</Text>
-                    <View style={styles.metaStat}>
-                      <Ionicons name="eye-outline" size={11} color={Colors.textMuted} />
-                      <Text style={styles.postMeta}>{post.views}</Text>
-                    </View>
-                    <View style={styles.metaStat}>
-                      <Ionicons name="chatbubble-outline" size={11} color={Colors.textMuted} />
-                      <Text style={styles.postMeta}>{post.comments}</Text>
-                    </View>
-                  </View>
-                </View>
-                {post.status === 'active' ? (
-                  <TouchableOpacity style={styles.editBtn}>
-                    <Text style={styles.editBtnText}>編集</Text>
-                  </TouchableOpacity>
-                ) : (
-                  <View style={styles.endedBadge}>
-                    <Text style={styles.endedBadgeText}>終了</Text>
-                  </View>
-                )}
-              </View>
-            ))}
-            {displayPosts.length === 0 && (
-              <Text style={styles.emptyText}>
-                {postTab === 'active' ? '公開中の投稿はありません' : '終了済みの投稿はありません'}
-              </Text>
-            )}
-          </View>
-        </View>
+        <MyPostsCard
+          activePosts={activePosts}
+          endedPosts={endedPosts}
+          postTab={postTab}
+          onTabChange={setPostTab}
+          onPostPress={(id) => router.push(`/post/${id}`)}
+          loading={postsLoading}
+        />
 
         {/* 設定メニュー */}
         <View style={styles.card}>
@@ -196,6 +171,7 @@ export default function ProfileScreen() {
   );
 }
 
+/** 統計数値ボックス */
 function StatBox({ label, value, color, bg }: { label: string; value: number; color: string; bg: string }) {
   return (
     <View style={[styles.statBox, { backgroundColor: bg }]}>
@@ -207,6 +183,8 @@ function StatBox({ label, value, color, bg }: { label: string; value: number; co
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+  loadingWrap: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  errorText: { fontSize: 13, color: Colors.textMuted, textAlign: 'center' },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -230,84 +208,12 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 1,
   },
-  profileRow: { flexDirection: 'row', gap: 12 },
-  profileInfo: { flex: 1, gap: 4 },
-  nameRow: { flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' },
-  displayName: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
-  verifiedBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-    backgroundColor: '#D1FAE5',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  verifiedText: { fontSize: 10, fontWeight: '700', color: '#059669' },
-  location: { fontSize: 13, color: Colors.textSecondary },
-  bio: { fontSize: 13, color: Colors.textPrimary, lineHeight: 19 },
-  editButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: 10,
-  },
-  editButtonText: { fontSize: 13, fontWeight: '600', color: Colors.textPrimary },
   sectionTitleRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   sectionTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary },
   statsRow: { flexDirection: 'row', gap: 10 },
   statBox: { flex: 1, borderRadius: 12, padding: 12, alignItems: 'center', gap: 2 },
   statValue: { fontSize: 24, fontWeight: '700' },
   statLabel: { fontSize: 11, color: Colors.textSecondary },
-  tabRow: { flexDirection: 'row', gap: 8 },
-  tab: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
-    backgroundColor: Colors.surfaceSecondary,
-  },
-  tabActive: { backgroundColor: Colors.primary },
-  tabEnded: { backgroundColor: '#475569' },
-  tabText: { fontSize: 13, fontWeight: '600', color: Colors.textSecondary },
-  tabTextActive: { color: '#fff' },
-  tabTextEnded: { color: '#fff' },
-  postList: { gap: 8 },
-  postItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    padding: 12,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: '#fff',
-  },
-  postItemEnded: { backgroundColor: Colors.surfaceSecondary },
-  postBody: { flex: 1, gap: 4 },
-  postTitle: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary },
-  postTitleEnded: { color: Colors.textSecondary },
-  postMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-  postMeta: { fontSize: 11, color: Colors.textMuted },
-  metaStat: { flexDirection: 'row', alignItems: 'center', gap: 3 },
-  editBtn: {
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-    backgroundColor: Colors.surfaceSecondary,
-    borderRadius: 8,
-  },
-  editBtnText: { fontSize: 11, fontWeight: '600', color: Colors.textSecondary },
-  endedBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    backgroundColor: '#E2E8F0',
-    borderRadius: 6,
-  },
-  endedBadgeText: { fontSize: 11, color: Colors.textSecondary },
-  emptyText: { fontSize: 13, color: Colors.textMuted, textAlign: 'center', padding: 16 },
   settingRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -334,4 +240,26 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   logoutText: { fontSize: 13, fontWeight: '600', color: Colors.danger },
+  // ─── ゲスト用 ──────────────────────────────────────────
+  guestWrap: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 32, gap: 12 },
+  guestIconCircle: {
+    width: 80,
+    height: 80,
+    borderRadius: 40,
+    backgroundColor: Colors.surfaceSecondary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 8,
+  },
+  guestTitle: { fontSize: 18, fontWeight: '700', color: Colors.textPrimary },
+  guestSub: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center', lineHeight: 20 },
+  loginBtn: {
+    marginTop: 8,
+    backgroundColor: Colors.primary,
+    paddingHorizontal: 48,
+    paddingVertical: 14,
+    borderRadius: 12,
+  },
+  loginBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  registerLink: { fontSize: 13, color: Colors.primary, fontWeight: '600', marginTop: 4 },
 });

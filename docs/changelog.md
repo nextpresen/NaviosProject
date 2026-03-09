@@ -2,6 +2,98 @@
 
 最終更新: 2026-03-10
 
+## 2026-03-10 — ゲスト閲覧対応 + UI調整
+
+### ゲスト閲覧対応（未ログインでもアプリ閲覧可能に）
+
+#### app/_layout.tsx — AuthGuard 緩和
+- 未ログイン時の `/auth/login` 強制リダイレクトを削除
+- ログイン済みユーザーが auth 画面にいる場合のみ `/(tabs)` へリダイレクト
+- これにより未ログインでも Pulse・近く・検索画面を自由に閲覧可能
+
+#### app/(tabs)/_layout.tsx — 投稿ボタンのガード
+- `useAuth()` を導入、中央の投稿ボタン押下時に `session` を確認
+- 未ログイン → `/auth/login` へ遷移（ログイン後に戻れる）
+- ログイン済み → 従来通り `/post/create` へ遷移
+
+#### app/(tabs)/profile.tsx — ゲスト用ログイン誘導UI
+- `useAuth()` で `session` を確認、未ログイン時は専用UIを表示
+  - ユーザーアイコン（80px 丸）+ 「ログインしていません」テキスト
+  - 説明文「ログインすると投稿の作成や活動履歴の確認ができます」
+  - ログインボタン（プライマリカラー） → `/auth/login`
+  - 「アカウントをお持ちでない方はこちら」リンク → `/auth/register`
+
+### Nearby 画面 PostCard 高さ調整
+
+#### components/post/PostCard.tsx
+- カードに `height: 155` を固定 + `justifyContent: 'space-between'`
+- 内容量に関わらず高さが一定になり、下のリストへの被りを解消
+
+#### app/(tabs)/nearby.tsx
+- `hotCardsWrapper` の高さを `145` → `165` に拡大（カード155 + 余白10）
+
+### 検索画面セクション順変更
+
+#### app/(tabs)/search.tsx
+- セクション順を変更: 今日のトレンド → **カテゴリから探す** → 過去の盛り上がり
+- （旧: トレンド → 過去の盛り上がり → カテゴリ）
+
+---
+
+## 2026-03-10 — マイページ Supabase 実データ化
+
+### 概要
+マイページ（ProfileScreen）がモックデータ（`MOCK_CURRENT_USER` / `MOCK_MY_POSTS`）に依存していたのを、Supabase からの実データ取得に切り替えた。
+
+### 新規ファイル
+
+#### hooks/useProfile.ts
+- ログインユーザーの `users` テーブルデータを取得
+- 活動統計（投稿数・help カテゴリ投稿数・コメント数）を `Promise.all` で並列カウント
+- `Profile` 型を export（displayName / avatar / verified / email / stats）
+
+#### hooks/useMyPosts.ts
+- ログインユーザーの投稿一覧を `posts` テーブルから取得（`comments(count)` JOIN 付き）
+- `is_ended` → `status: 'active' | 'ended'` にマッピング
+- `MyPostItem` 型を export
+
+#### components/profile/ProfileCard.tsx
+- プロフィールカード（アバター・名前・認証バッジ・メール表示）を分離
+
+#### components/profile/MyPostsCard.tsx
+- 自分の投稿カード（公開中/終了済みタブ・投稿リスト・詳細遷移）を分離
+
+### 変更ファイル
+
+#### app/(tabs)/profile.tsx
+- `MOCK_CURRENT_USER` → `useProfile()` に置き換え
+- `MOCK_MY_POSTS` → `useMyPosts()` に置き換え
+- ローディング・エラー状態の表示を追加
+- サブコンポーネント切り出しで 338行 → 217行に削減
+- 投稿タップで `router.push('/post/${id}')` に遷移するよう追加
+
+#### lib/mockData.ts
+- `MOCK_CURRENT_USER` / `MOCK_MY_POSTS` を削除（参照元なし）
+- import から `MyPost` 型を削除
+
+#### types/index.ts
+- `MyPost` 型を削除（`hooks/useMyPosts.ts` の `MyPostItem` 型で代替）
+
+---
+
+## 2026-03-10 — セッション永続化 + useAuth エラーハンドリング修正
+
+### lib/supabase.ts — AsyncStorage によるセッション永続化
+- `@react-native-async-storage/async-storage` を storage アダプタに設定
+- `autoRefreshToken: true` / `persistSession: true` / `detectSessionInUrl: false` を追加
+- これによりアプリ再起動後もセッションが維持され、再ログイン不要になる
+
+### hooks/useAuth.ts — getSession() の catch 漏れ修正
+- `supabase.auth.getSession()` の `.then()` チェーンに `.catch()` を追加
+- 失敗時に `setLoading(false)` が呼ばれず、ローディング画面で固まる問題を解消
+
+---
+
 ## 2026-03-10 — MapLibre 依存削除・地図実装リセット
 
 ### 背景

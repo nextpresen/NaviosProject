@@ -10,6 +10,8 @@ export function useAuth() {
     supabase.auth.getSession().then(({ data }) => {
       setSession(data.session);
       setLoading(false);
+    }).catch(() => {
+      setLoading(false);
     });
 
     const {

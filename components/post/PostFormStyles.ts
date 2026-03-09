@@ -1,0 +1,95 @@
+/**
+ * PostFormStyles - 投稿作成画面で共有するスタイル定義
+ * create.tsx, CreatePostHeader, CategoryFields 等から参照される
+ */
+import { StyleSheet } from 'react-native';
+import { Colors } from '../../constants/colors';
+
+export const postFormStyles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#fff' },
+  header: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    paddingHorizontal: 16, paddingVertical: 12,
+    borderBottomWidth: 1, borderBottomColor: Colors.border,
+  },
+  closeButton: { width: 40, height: 40, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { fontSize: 16, fontWeight: '700', color: Colors.textPrimary },
+  submitButton: { paddingHorizontal: 16, paddingVertical: 8, backgroundColor: '#10B981', borderRadius: 20 },
+  submitButtonText: { color: '#fff', fontSize: 14, fontWeight: '700' },
+  submitButtonDisabled: { backgroundColor: '#6EE7B7' },
+  scroll: { flex: 1 },
+  scrollContent: { padding: 16, paddingBottom: 40 },
+  section: { marginBottom: 16 },
+  label: { fontSize: 13, fontWeight: '700', color: Colors.textPrimary, marginBottom: 8 },
+  required: { color: Colors.danger },
+  categoryRow: { flexDirection: 'row', gap: 8 },
+  categoryButton: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, paddingVertical: 12, borderRadius: 12,
+  },
+  categoryButtonInactive: { backgroundColor: Colors.surfaceSecondary },
+  categoryLabel: { fontSize: 12, fontWeight: '700', color: Colors.textSecondary },
+  categoryLabelActive: { color: '#fff' },
+  photoRow: { flexDirection: 'row', gap: 8 },
+  photoButton: {
+    flex: 1, paddingVertical: 16, backgroundColor: Colors.surfaceSecondary,
+    borderRadius: 12, alignItems: 'center', justifyContent: 'center', flexDirection: 'row', gap: 6,
+  },
+  photoLabel: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
+  input: {
+    backgroundColor: Colors.surfaceSecondary, borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 12, fontSize: 14, color: Colors.textPrimary,
+  },
+  textarea: { minHeight: 80, paddingTop: 12 },
+  categoryDetailBox: { backgroundColor: Colors.background, borderRadius: 12, padding: 16, marginBottom: 16 },
+  categoryDetailHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 12 },
+  categoryDot: { width: 20, height: 20, borderRadius: 10 },
+  categoryDetailTitle: { fontSize: 14, fontWeight: '700', color: Colors.textPrimary },
+  fieldGroup: { gap: 12 },
+  row: { flexDirection: 'row', gap: 12 },
+  flex1: { flex: 1 },
+  subLabel: { fontSize: 11, color: Colors.textMuted, marginBottom: 4 },
+  inputSm: {
+    backgroundColor: '#fff', borderRadius: 8,
+    paddingHorizontal: 12, paddingVertical: 8, fontSize: 13, color: Colors.textPrimary,
+  },
+  selectRow: { gap: 4 },
+  selectOption: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6, backgroundColor: '#fff', marginBottom: 2 },
+  selectOptionText: { fontSize: 11, color: Colors.textSecondary },
+  selectOptionTextActive: { color: '#fff', fontWeight: '700' },
+  durationRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 6 },
+  durationButton: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: '#fff' },
+  durationButtonText: { fontSize: 12, fontWeight: '500', color: Colors.textSecondary },
+  durationButtonTextActive: { color: '#fff' },
+  infoNote: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    borderRadius: 8, paddingHorizontal: 12, paddingVertical: 8,
+  },
+  infoNoteText: { flex: 1, fontSize: 11 },
+  typeButton: {
+    flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 4, paddingVertical: 10, borderRadius: 8, backgroundColor: '#fff',
+  },
+  typeButtonText: { fontSize: 13, fontWeight: '500', color: Colors.textSecondary },
+  typeButtonTextActive: { color: '#fff' },
+  locationButton: {
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+    backgroundColor: '#fff', borderRadius: 8, padding: 12,
+  },
+  locationLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  locationText: { fontSize: 13, color: Colors.textSecondary },
+  locationHint: { fontSize: 11, color: Colors.textMuted },
+  commentRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  commentLeft: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  tipsBox: { backgroundColor: '#FFFBEB', borderRadius: 12, padding: 16 },
+  tipsHeader: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  tipsTitle: { fontSize: 14, fontWeight: '700', color: '#92400E' },
+  tipRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginBottom: 4 },
+  tipText: { flex: 1, fontSize: 12, color: '#92400E', lineHeight: 18 },
+  imagePreviewRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 8 },
+  imagePreviewWrap: { position: 'relative' },
+  imagePreview: { width: 72, height: 72, borderRadius: 8 },
+  imageRemoveButton: {
+    position: 'absolute', top: -6, right: -6, backgroundColor: 'rgba(0,0,0,0.5)', borderRadius: 9,
+  },
+});

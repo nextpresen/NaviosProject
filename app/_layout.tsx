@@ -12,8 +12,9 @@ import { useAuth } from '../hooks/useAuth';
 
 /**
  * 認証ガード
- * 未ログイン → /auth/login へリダイレクト
- * ログイン済み → 認証画面から /(tabs) へリダイレクト
+ * ログイン済みユーザーが auth 画面にいる場合のみ /(tabs) へリダイレクト
+ * 未ログインでもタブ画面（閲覧）は許可する
+ * 投稿作成など認証必須の画面は各画面側でガードする
  */
 function AuthGuard() {
   const { session, loading } = useAuth();
@@ -25,9 +26,7 @@ function AuthGuard() {
 
     const inAuthGroup = segments[0] === 'auth';
 
-    if (!session && !inAuthGroup) {
-      router.replace('/auth/login');
-    } else if (session && inAuthGroup) {
+    if (session && inAuthGroup) {
       router.replace('/(tabs)');
     }
   }, [session, loading, segments, router]);
