@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -87,8 +87,6 @@ export default function PulseScreen() {
   const floatY = useFloatAnimation();
   const { posts, loading: postLoading, error } = usePosts({ includeEnded: false, limit: 120 });
 
-  const recommended = useMemo(() => [...posts].sort((a, b) => b.commentCount - a.commentCount).slice(0, 5), [posts]);
-
   const handleSearch = () => {
     if (!query.trim() || postLoading) return;
     setLoading(true);
@@ -121,10 +119,8 @@ export default function PulseScreen() {
       <SafeAreaView style={styles.safeArea} edges={['top']}>
         {/* Header */}
         <View style={styles.header}>
-          <View style={styles.headerLeft}>
-            <View style={styles.headerDot} />
-            <Text style={styles.headerTitle}>Pulse</Text>
-          </View>
+          <View style={styles.headerDot} />
+          <Text style={styles.headerTitle}>Navios</Text>
           <Text style={styles.headerSub}>AI検索</Text>
         </View>
 
@@ -208,9 +204,8 @@ export default function PulseScreen() {
               </View>
             </Animated.View>
 
-            <Text style={styles.heroTitle}>NaviOs AIに聞いてみよう</Text>
             <Text style={styles.heroSub}>
-              キーワードを入力すると、近くの投稿からAIが最適な情報を見つけます
+              Question AI — 気になることを聞いてみよう
             </Text>
 
             {/* Search bar */}
@@ -249,40 +244,13 @@ export default function PulseScreen() {
                     activeOpacity={0.7}
                   >
                     <View style={[styles.categoryChipIcon, { backgroundColor: cat.bgColor }]}>
-                      <Ionicons name={iconName} size={16} color={cat.color} />
+                      <Ionicons name={iconName} size={12} color={cat.color} />
                     </View>
                     <Text style={[styles.categoryChipText, { color: cat.color }]}>{cat.label}</Text>
                   </TouchableOpacity>
                 );
               })}
             </View>
-
-            {/* Trending section */}
-            {recommended.length > 0 ? (
-              <View style={styles.trendingSection}>
-                <View style={styles.trendingHeader}>
-                  <Ionicons name="trending-up" size={18} color={Colors.teal} />
-                  <Text style={styles.trendingTitle}>トレンド</Text>
-                </View>
-                <View style={styles.trendingList}>
-                  {recommended.map((item, idx) => (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={styles.trendingItem}
-                      onPress={() => setQuery(item.title)}
-                      activeOpacity={0.7}
-                    >
-                      <Text style={styles.trendingRank}>{idx + 1}</Text>
-                      <Text style={styles.trendingText} numberOfLines={1}>{item.title}</Text>
-                      <View style={styles.trendingMeta}>
-                        <Ionicons name="chatbubble-outline" size={10} color={Colors.textMuted} />
-                        <Text style={styles.trendingMetaText}>{item.commentCount}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-              </View>
-            ) : null}
 
           </ScrollView>
         ) : null}
@@ -365,14 +333,10 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: 8,
     paddingHorizontal: 20,
     paddingVertical: 12,
-  },
-  headerLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
   },
   headerDot: {
     width: 10,
@@ -397,6 +361,9 @@ const styles = StyleSheet.create({
 
   // Hero scroll
   heroScroll: {
+    flexGrow: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: 20,
     paddingBottom: 40,
   },
@@ -406,7 +373,6 @@ const styles = StyleSheet.create({
     height: 120,
     alignItems: 'center',
     justifyContent: 'center',
-    marginTop: 24,
     marginBottom: 20,
   },
   pulseRing: {
@@ -445,13 +411,6 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 8,
   },
-  heroTitle: {
-    fontSize: 22,
-    fontWeight: '800',
-    color: Colors.textPrimary,
-    textAlign: 'center',
-    marginBottom: 8,
-  },
   heroSub: {
     fontSize: 14,
     color: Colors.textSecondary,
@@ -467,6 +426,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 10,
     marginBottom: 12,
+    alignSelf: 'stretch',
   },
   searchBox: {
     flexDirection: 'row',
@@ -517,19 +477,21 @@ const styles = StyleSheet.create({
   },
   categoryRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: 8,
     marginBottom: 28,
+    alignSelf: 'stretch',
   },
   categoryChip: {
-    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
+    gap: 4,
     backgroundColor: Colors.surface,
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-    borderWidth: 1.5,
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    borderWidth: 1,
     ...Platform.select({
       ios: {
         shadowColor: '#000',
@@ -541,70 +503,15 @@ const styles = StyleSheet.create({
     }),
   },
   categoryChipIcon: {
-    width: 28,
-    height: 28,
-    borderRadius: 8,
+    width: 22,
+    height: 22,
+    borderRadius: 6,
     alignItems: 'center',
     justifyContent: 'center',
   },
   categoryChipText: {
-    fontSize: 12,
-    fontWeight: '700',
-    flex: 1,
-  },
-
-  // Trending
-  trendingSection: {
-    marginBottom: 24,
-  },
-  trendingHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    marginBottom: 12,
-  },
-  trendingTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  trendingList: {
-    backgroundColor: 'rgba(255, 255, 255, 0.7)',
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: 'rgba(255, 255, 255, 0.9)',
-    overflow: 'hidden',
-  },
-  trendingItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: 'rgba(13, 148, 136, 0.08)',
-    gap: 10,
-  },
-  trendingRank: {
-    fontSize: 14,
-    fontWeight: '800',
-    color: Colors.teal,
-    width: 22,
-    textAlign: 'center',
-  },
-  trendingText: {
-    flex: 1,
-    fontSize: 14,
-    fontWeight: '600',
-    color: Colors.textPrimary,
-  },
-  trendingMeta: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 3,
-  },
-  trendingMetaText: {
     fontSize: 11,
-    color: Colors.textMuted,
+    fontWeight: '700',
   },
 
   // Bottom bar

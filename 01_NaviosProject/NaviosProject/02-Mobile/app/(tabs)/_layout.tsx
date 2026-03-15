@@ -1,4 +1,4 @@
-﻿import { Tabs, useRouter } from 'expo-router';
+import { Tabs } from 'expo-router';
 import { TouchableOpacity, View, Text, StyleSheet } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -6,40 +6,25 @@ import type { BottomTabBarProps } from '@react-navigation/bottom-tabs';
 import { Colors } from '../../constants/colors';
 
 const TAB_ITEMS = [
-  { name: 'index', label: 'Pulse', icon: 'flash-outline' as const, iconActive: 'flash' as const },
-  { name: 'nearby', label: '近く', icon: 'map-outline' as const, iconActive: 'map' as const },
-  { name: 'search', label: 'タイムライン', icon: 'time-outline' as const, iconActive: 'time' as const },
-  { name: 'profile', label: 'マイページ', icon: 'person-outline' as const, iconActive: 'person' as const },
+  { name: 'talk', label: 'Talk', icon: 'chatbubbles-outline' as const, iconActive: 'chatbubbles' as const },
+  { name: 'index', label: 'Navios', icon: 'flash-outline' as const, iconActive: 'flash' as const },
+  { name: 'nearby', label: 'Map', icon: 'map-outline' as const, iconActive: 'map' as const },
+  { name: 'search', label: 'Feed', icon: 'time-outline' as const, iconActive: 'time' as const },
+  { name: 'profile', label: 'My', icon: 'person-outline' as const, iconActive: 'person' as const },
 ] as const;
 
 function CustomTabBar({ state, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
-  const router = useRouter();
 
   return (
     <View style={[styles.container, { paddingBottom: insets.bottom }]}>
-      {TAB_ITEMS.slice(0, 2).map((tab, i) => (
+      {TAB_ITEMS.map((tab, i) => (
         <TabButton
           key={tab.name}
           label={tab.label}
           icon={tab.icon}
           iconActive={tab.iconActive}
           isActive={state.index === i}
-          onPress={() => navigation.navigate(tab.name as never)}
-        />
-      ))}
-
-      <TouchableOpacity style={styles.postButton} onPress={() => router.push('/post/create')} activeOpacity={0.85}>
-        <Ionicons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
-
-      {TAB_ITEMS.slice(2).map((tab, i) => (
-        <TabButton
-          key={tab.name}
-          label={tab.label}
-          icon={tab.icon}
-          iconActive={tab.iconActive}
-          isActive={state.index === i + 2}
           onPress={() => navigation.navigate(tab.name as never)}
         />
       ))}
@@ -68,6 +53,7 @@ function TabButton({ label, icon, iconActive, isActive, onPress }: TabButtonProp
 export default function TabsLayout() {
   return (
     <Tabs tabBar={(props) => <CustomTabBar {...props} />} screenOptions={{ headerShown: false }}>
+      <Tabs.Screen name="talk" />
       <Tabs.Screen name="index" />
       <Tabs.Screen name="nearby" />
       <Tabs.Screen name="search" />
@@ -99,19 +85,5 @@ const styles = StyleSheet.create({
   tabLabelActive: {
     color: Colors.primary,
     fontWeight: '700',
-  },
-  postButton: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: Colors.primary,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginTop: -20,
-    shadowColor: Colors.primary,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
   },
 });

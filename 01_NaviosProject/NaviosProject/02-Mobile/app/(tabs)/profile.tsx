@@ -243,6 +243,29 @@ export default function ProfileScreen() {
     }
   };
 
+  if (!user) {
+    return (
+      <SafeAreaView style={styles.guestContainer}>
+        <View style={styles.guestContent}>
+          <View style={styles.guestIconCircle}>
+            <Ionicons name="person" size={40} color={Colors.primary} />
+          </View>
+          <Text style={styles.guestTitle}>マイページ</Text>
+          <Text style={styles.guestSub}>
+            ログインすると、投稿の管理やプロフィール編集ができます
+          </Text>
+          <TouchableOpacity style={styles.guestLoginBtn} onPress={() => router.push('/auth/login')} activeOpacity={0.8}>
+            <Ionicons name="log-in-outline" size={18} color="#fff" />
+            <Text style={styles.guestLoginBtnText}>ログイン</Text>
+          </TouchableOpacity>
+          <TouchableOpacity onPress={() => router.push('/auth/register')} activeOpacity={0.7}>
+            <Text style={styles.guestRegisterText}>アカウントを作成する</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   if (loading) {
     return (
       <SafeAreaView style={styles.skeletonContainer}>
@@ -321,39 +344,54 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        {/* Stats cards */}
-        <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <View style={[styles.statIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
-              <Ionicons name="document-text" size={18} color={Colors.primary} />
+        {/* Stats cards — 2x2 grid */}
+        <View style={styles.statsGrid}>
+          <View style={styles.statsGridRow}>
+            <View style={styles.statCard}>
+              <View style={[styles.statIconCircle, { backgroundColor: 'rgba(16, 185, 129, 0.1)' }]}>
+                <Ionicons name="document-text" size={18} color={Colors.primary} />
+              </View>
+              <Text style={[styles.statValue, { color: Colors.primary }]}>{posts.length}</Text>
+              <Text style={styles.statLabel}>投稿</Text>
             </View>
-            <Text style={[styles.statValue, { color: Colors.primary }]}>{posts.length}</Text>
-            <Text style={styles.statLabel}>投稿</Text>
+            <TouchableOpacity
+              style={[styles.statCard, postTab === 'active' && styles.statCardActive]}
+              activeOpacity={0.7}
+              onPress={() => setPostTab('active')}
+            >
+              <View style={[styles.statIconCircle, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
+                <Ionicons name="radio" size={18} color={Colors.warning} />
+              </View>
+              <Text style={[styles.statValue, { color: Colors.warning }]}>{activePosts.length}</Text>
+              <Text style={styles.statLabel}>公開中</Text>
+              {postTab === 'active' ? <View style={[styles.statActiveBar, { backgroundColor: Colors.warning }]} /> : null}
+            </TouchableOpacity>
           </View>
-          <TouchableOpacity
-            style={[styles.statCard, postTab === 'active' && styles.statCardActive]}
-            activeOpacity={0.7}
-            onPress={() => setPostTab('active')}
-          >
-            <View style={[styles.statIconCircle, { backgroundColor: 'rgba(245, 158, 11, 0.1)' }]}>
-              <Ionicons name="radio" size={18} color={Colors.warning} />
-            </View>
-            <Text style={[styles.statValue, { color: Colors.warning }]}>{activePosts.length}</Text>
-            <Text style={styles.statLabel}>公開中</Text>
-            {postTab === 'active' ? <View style={[styles.statActiveBar, { backgroundColor: Colors.warning }]} /> : null}
-          </TouchableOpacity>
-          <TouchableOpacity
-            style={[styles.statCard, postTab === 'commented' && styles.statCardActive]}
-            activeOpacity={0.7}
-            onPress={() => setPostTab('commented')}
-          >
-            <View style={[styles.statIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
-              <Ionicons name="chatbubbles" size={18} color={Colors.blue} />
-            </View>
-            <Text style={[styles.statValue, { color: Colors.blue }]}>{totalComments}</Text>
-            <Text style={styles.statLabel}>コメント</Text>
-            {postTab === 'commented' ? <View style={[styles.statActiveBar, { backgroundColor: Colors.blue }]} /> : null}
-          </TouchableOpacity>
+          <View style={styles.statsGridRow}>
+            <TouchableOpacity
+              style={[styles.statCard, postTab === 'commented' && styles.statCardActive]}
+              activeOpacity={0.7}
+              onPress={() => setPostTab('commented')}
+            >
+              <View style={[styles.statIconCircle, { backgroundColor: 'rgba(59, 130, 246, 0.1)' }]}>
+                <Ionicons name="chatbubble-ellipses" size={18} color={Colors.blue} />
+              </View>
+              <Text style={[styles.statValue, { color: Colors.blue }]}>{totalComments}</Text>
+              <Text style={styles.statLabel}>コメント</Text>
+              {postTab === 'commented' ? <View style={[styles.statActiveBar, { backgroundColor: Colors.blue }]} /> : null}
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.statCard}
+              activeOpacity={0.7}
+              onPress={() => router.push('/(tabs)/talk' as any)}
+            >
+              <View style={[styles.statIconCircle, { backgroundColor: 'rgba(139, 92, 246, 0.1)' }]}>
+                <Ionicons name="chatbubbles" size={18} color={Colors.purple} />
+              </View>
+              <Text style={[styles.statValue, { color: Colors.purple }]}>0</Text>
+              <Text style={styles.statLabel}>チャット</Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         <View style={styles.body}>
@@ -484,12 +522,31 @@ export default function ProfileScreen() {
           </View>
         </View>
       </ScrollView>
+
+      {/* Floating post button */}
+      <TouchableOpacity
+        style={styles.fab}
+        onPress={() => router.push('/post/create')}
+        activeOpacity={0.85}
+      >
+        <Ionicons name="add" size={28} color="#fff" />
+      </TouchableOpacity>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: Colors.background },
+
+  // Guest
+  guestContainer: { flex: 1, backgroundColor: Colors.background, justifyContent: 'center', alignItems: 'center' },
+  guestContent: { alignItems: 'center', paddingHorizontal: 40, gap: 12 },
+  guestIconCircle: { width: 80, height: 80, borderRadius: 40, backgroundColor: Colors.primaryLight, alignItems: 'center', justifyContent: 'center', marginBottom: 8 },
+  guestTitle: { fontSize: 24, fontWeight: '800', color: Colors.textPrimary },
+  guestSub: { fontSize: 14, color: Colors.textSecondary, textAlign: 'center', lineHeight: 22 },
+  guestLoginBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, backgroundColor: Colors.primary, paddingHorizontal: 28, paddingVertical: 12, borderRadius: 24, marginTop: 8 },
+  guestLoginBtnText: { fontSize: 15, fontWeight: '700', color: '#fff' },
+  guestRegisterText: { fontSize: 13, fontWeight: '600', color: Colors.primary, marginTop: 4 },
   skeletonContainer: { flex: 1, backgroundColor: Colors.surface, padding: 24 },
   errorContainer: { flex: 1, alignItems: 'center', justifyContent: 'center', gap: 10, backgroundColor: Colors.surface, padding: 24 },
   errorText: { fontSize: 13, color: Colors.textSecondary, textAlign: 'center' },
@@ -595,12 +652,15 @@ const styles = StyleSheet.create({
   verifiedChipText: { fontSize: 10, fontWeight: '700', color: '#fff' },
   heroEmail: { fontSize: 12, color: Colors.textSecondary },
 
-  // Stats row
-  statsRow: {
-    flexDirection: 'row',
+  // Stats grid (2x2)
+  statsGrid: {
     gap: 10,
     marginHorizontal: 16,
     marginTop: -6,
+  },
+  statsGridRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
   statCard: {
     flex: 1,
@@ -778,4 +838,22 @@ const styles = StyleSheet.create({
     borderColor: Colors.dangerBorder,
   },
   logoutText: { fontSize: 14, fontWeight: '600', color: Colors.dangerDark },
+
+  // FAB
+  fab: {
+    position: 'absolute',
+    bottom: 24,
+    right: 20,
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: Colors.primary,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 8,
+    elevation: 6,
+  },
 });

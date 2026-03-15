@@ -16,11 +16,7 @@ function RootLayoutNav() {
 
     const inAuthGroup = segments[0] === 'auth';
 
-    if (!session && !inAuthGroup) {
-      router.replace('/auth/login');
-      return;
-    }
-
+    // ログイン済みユーザーがauth画面にいたらタブへ戻す
     if (session && inAuthGroup) {
       router.replace('/(tabs)');
     }

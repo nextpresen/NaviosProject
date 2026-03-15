@@ -1,13 +1,10 @@
-import React, { useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Alert,
-  Image,
   Modal,
   ScrollView,
   StyleSheet,
-  Switch,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from 'react-native';
@@ -15,20 +12,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
-import { CATEGORIES, getCategoryInfo, getCategoryIconName } from '../../constants/categories';
 import { Colors } from '../../constants/colors';
 import type { PostFormData } from '../../types';
 import { useAuth } from '../../hooks/useAuth';
 import { useLocation } from '../../hooks/useLocation';
 import { createPost } from '../../lib/postService';
-
-const STOCK_DURATION_OPTIONS = [
-  { value: 'today', label: '本日中' },
-  { value: '48hours', label: '48時間' },
-  { value: '3days', label: '3日間' },
-  { value: '1week', label: '1週間' },
-  { value: 'manual', label: '手動設定' },
-] as const;
+import CreateStepBasic from '../../components/post/CreateStepBasic';
+import CreateStepDetails from '../../components/post/CreateStepDetails';
+import CreateStepConfirm from '../../components/post/CreateStepConfirm';
 
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const MINUTES = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
@@ -254,6 +245,11 @@ export default function CreatePostScreen() {
   const { user } = useAuth();
   const { coords, error: locationError } = useLocation();
 
+  // 未ログインなら投稿作成不可 → ログインへ
+  useEffect(() => {
+    if (!user) router.replace('/auth/login');
+  }, [user, router]);
+
   const [form, setForm] = useState<PostFormData>(INITIAL_FORM);
   const [submitting, setSubmitting] = useState(false);
   const [calendarTarget, setCalendarTarget] = useState<CalendarTarget>(null);
@@ -268,8 +264,6 @@ export default function CreatePostScreen() {
   /* Manual location fallback */
   const [showManualLocation, setShowManualLocation] = useState(false);
   const [manualPlace, setManualPlace] = useState({ name: '', address: '' });
-
-  const category = getCategoryInfo(form.category);
 
   const set = (patch: Partial<PostFormData>) => setForm((prev) => ({ ...prev, ...patch }));
 
@@ -427,355 +421,13 @@ export default function CreatePostScreen() {
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* ──── Step 1: Basic Info ──── */}
-        {step === 1 && (
-          <>
-            {/* Category */}
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>カテゴリ</Text>
-              <View style={styles.categoryGrid}>
-                {CATEGORIES.map((item) => {
-                  const active = item.id === form.category;
-                  return (
-                    <TouchableOpacity
-                      key={item.id}
-                      style={[
-                        styles.categoryBtn,
-                        active
-                          ? { backgroundColor: item.color }
-                          : { backgroundColor: item.bgColor, borderWidth: 1, borderColor: Colors.border },
-                      ]}
-                      onPress={() => set({ category: item.id })}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons
-                        name={getCategoryIconName(item.id) as keyof typeof Ionicons.glyphMap}
-                        size={22}
-                        color={active ? '#fff' : item.color}
-                      />
-                      <Text
-                        style={[
-                          styles.categoryBtnText,
-                          active ? styles.categoryBtnTextActive : { color: item.color },
-                        ]}
-                      >
-                        {item.label}
-                      </Text>
-                    </TouchableOpacity>
-                  );
-                })}
-              </View>
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Title */}
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>タイトル <Text style={styles.required}>*</Text></Text>
-              <TextInput
-                style={styles.input}
-                value={form.title}
-                onChangeText={(v) => set({ title: v })}
-                placeholder="例: 野菜が安いお店を見つけました"
-                placeholderTextColor={Colors.textMuted}
-              />
-            </View>
-
-            {/* Content */}
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>詳細</Text>
-              <TextInput
-                style={[styles.input, styles.textarea]}
-                value={form.content}
-                onChangeText={(v) => set({ content: v })}
-                placeholder="内容を具体的に書いてください"
-                placeholderTextColor={Colors.textMuted}
-                multiline
-                textAlignVertical="top"
-              />
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Images */}
-            <View style={styles.section}>
-              <View style={styles.rowBetween}>
-                <Text style={styles.sectionLabel}>画像（最大4枚）</Text>
-                <TouchableOpacity style={styles.imageAddBtn} onPress={handlePickImage}>
-                  <Ionicons name="image-outline" size={16} color="#fff" />
-                  <Text style={styles.imageAddText}>追加</Text>
-                </TouchableOpacity>
-              </View>
-              {form.images.length > 0 && (
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.imageRow}>
-                  {form.images.map((uri) => (
-                    <View key={uri} style={styles.previewWrap}>
-                      <Image source={{ uri }} style={styles.previewImage} />
-                      <TouchableOpacity style={styles.previewRemove} onPress={() => removeImage(uri)}>
-                        <Ionicons name="close" size={14} color="#fff" />
-                      </TouchableOpacity>
-                    </View>
-                  ))}
-                </ScrollView>
-              )}
-            </View>
-          </>
-        )}
+        {step === 1 && <CreateStepBasic form={form} set={set} onPickImage={handlePickImage} onRemoveImage={removeImage} />}
 
         {/* ──── Step 2: Details ──── */}
-        {step === 2 && (
-          <>
-            {/* Category-specific fields */}
-            <View style={styles.sectionGrouped}>
-              <Text style={styles.sectionLabel}>{category.label}の詳細</Text>
-
-              {form.category === 'stock' ? (
-                <View style={styles.fieldsGap}>
-                  <TextInput
-                    style={styles.input}
-                    value={form.price}
-                    onChangeText={(v) => set({ price: v })}
-                    placeholder="価格（例: 100円 / 1袋）"
-                    placeholderTextColor={Colors.textMuted}
-                  />
-                  <View style={styles.wrapRow}>
-                    {STOCK_DURATION_OPTIONS.map((opt) => (
-                      <TouchableOpacity
-                        key={opt.value}
-                        style={[styles.chip, form.stockDuration === opt.value && styles.chipActive]}
-                        onPress={() => set({ stockDuration: opt.value })}
-                      >
-                        <Text style={[styles.chipText, form.stockDuration === opt.value && styles.chipTextActive]}>
-                          {opt.label}
-                        </Text>
-                      </TouchableOpacity>
-                    ))}
-                  </View>
-                </View>
-              ) : null}
-
-              {form.category === 'event' ? (
-                <View style={styles.fieldsGap}>
-                  <TouchableOpacity style={styles.inputLike} onPress={() => openCalendar('eventDate')}>
-                    <Ionicons name="calendar-outline" size={18} color={Colors.textSecondary} />
-                    <Text style={[styles.inputLikeText, !form.eventDate && styles.inputLikePlaceholder]}>
-                      {form.eventDate || '開催日を選択'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity style={styles.inputLike} onPress={openTimePicker}>
-                    <Ionicons name="time-outline" size={18} color={Colors.textSecondary} />
-                    <Text style={[styles.inputLikeText, !form.eventTime && styles.inputLikePlaceholder]}>
-                      {form.eventTime || '開催時刻を選択'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TextInput
-                    style={styles.input}
-                    value={form.fee}
-                    onChangeText={(v) => set({ fee: v })}
-                    placeholder="参加費（例: 無料 / 500円）"
-                    placeholderTextColor={Colors.textMuted}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={form.maxParticipants ? String(form.maxParticipants) : ''}
-                    onChangeText={(v) => set({ maxParticipants: v ? Number(v) : undefined })}
-                    placeholder="最大参加人数"
-                    placeholderTextColor={Colors.textMuted}
-                    keyboardType="numeric"
-                  />
-                </View>
-              ) : null}
-
-              {form.category === 'help' ? (
-                <View style={styles.fieldsGap}>
-                  <View style={styles.row}>
-                    <TouchableOpacity
-                      style={[styles.halfBtn, form.helpType === 'request' && styles.halfBtnActive]}
-                      onPress={() => set({ helpType: 'request' })}
-                    >
-                      <Ionicons
-                        name="hand-right-outline"
-                        size={16}
-                        color={form.helpType === 'request' ? '#fff' : Colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                      <Text style={[styles.halfBtnText, form.helpType === 'request' && styles.halfBtnTextActive]}>
-                        お願い
-                      </Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.halfBtn, form.helpType === 'share' && styles.halfBtnActive]}
-                      onPress={() => set({ helpType: 'share' })}
-                    >
-                      <Ionicons
-                        name="heart-outline"
-                        size={16}
-                        color={form.helpType === 'share' ? '#fff' : Colors.textSecondary}
-                        style={{ marginRight: 4 }}
-                      />
-                      <Text style={[styles.halfBtnText, form.helpType === 'share' && styles.halfBtnTextActive]}>
-                        提供
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                  <TextInput
-                    style={styles.input}
-                    value={form.reward}
-                    onChangeText={(v) => set({ reward: v })}
-                    placeholder="お礼・提供内容"
-                    placeholderTextColor={Colors.textMuted}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={form.estimatedTime}
-                    onChangeText={(v) => set({ estimatedTime: v })}
-                    placeholder="所要時間の目安"
-                    placeholderTextColor={Colors.textMuted}
-                  />
-                </View>
-              ) : null}
-
-              {form.category === 'admin' ? (
-                <View style={styles.fieldsGap}>
-                  <TouchableOpacity style={styles.inputLike} onPress={() => openCalendar('deadline')}>
-                    <Ionicons name="calendar-outline" size={18} color={Colors.textSecondary} />
-                    <Text style={[styles.inputLikeText, !form.deadline && styles.inputLikePlaceholder]}>
-                      {form.deadline || '締切日を選択'}
-                    </Text>
-                  </TouchableOpacity>
-                  <TextInput
-                    style={[styles.input, styles.textarea]}
-                    value={Array.isArray(form.requirements) ? form.requirements.join('\n') : ''}
-                    onChangeText={(v) => set({ requirements: v.split('\n').map((item) => item.trim()).filter(Boolean) })}
-                    placeholder="必要なもの（1行に1つ）"
-                    placeholderTextColor={Colors.textMuted}
-                    multiline
-                    textAlignVertical="top"
-                  />
-                </View>
-              ) : null}
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Comments toggle */}
-            <View style={styles.sectionRow}>
-              <View style={styles.rowIcon}>
-                <Ionicons name="chatbubble-outline" size={18} color={Colors.textSecondary} />
-                <Text style={styles.sectionLabel}>コメントを許可</Text>
-              </View>
-              <Switch
-                value={form.allowComments}
-                onValueChange={(v) => set({ allowComments: v })}
-                trackColor={{ false: Colors.border, true: Colors.primary }}
-                thumbColor="#fff"
-              />
-            </View>
-          </>
-        )}
+        {step === 2 && <CreateStepDetails form={form} set={set} onOpenCalendar={openCalendar} onOpenTimePicker={openTimePicker} />}
 
         {/* ──── Step 3: Location & Confirm ──── */}
-        {step === 3 && (
-          <>
-            {/* Location */}
-            <View style={styles.section}>
-              <View style={styles.rowIcon}>
-                <Ionicons name="location-outline" size={18} color={Colors.textSecondary} />
-                <Text style={styles.sectionLabel}>位置情報</Text>
-              </View>
-              <Text style={styles.locationText}>{locationHint}</Text>
-
-              {/* Manual location fallback */}
-              {!showManualLocation ? (
-                <TouchableOpacity
-                  style={styles.manualLocationToggle}
-                  onPress={() => setShowManualLocation(true)}
-                >
-                  <Ionicons name="create-outline" size={16} color={Colors.primary} />
-                  <Text style={styles.manualLocationToggleText}>手動で場所を入力</Text>
-                </TouchableOpacity>
-              ) : (
-                <View style={styles.manualLocationFields}>
-                  <Text style={styles.manualLocationDivider}>または</Text>
-                  <TextInput
-                    style={styles.input}
-                    value={manualPlace.name}
-                    onChangeText={(v) => setManualPlace((prev) => ({ ...prev, name: v }))}
-                    placeholder="場所の名前"
-                    placeholderTextColor={Colors.textMuted}
-                  />
-                  <TextInput
-                    style={styles.input}
-                    value={manualPlace.address}
-                    onChangeText={(v) => setManualPlace((prev) => ({ ...prev, address: v }))}
-                    placeholder="住所"
-                    placeholderTextColor={Colors.textMuted}
-                  />
-                  <TouchableOpacity
-                    style={styles.manualLocationClear}
-                    onPress={() => {
-                      setManualPlace({ name: '', address: '' });
-                      setShowManualLocation(false);
-                    }}
-                  >
-                    <Text style={styles.manualLocationClearText}>手動入力をクリア</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-
-            <View style={styles.divider} />
-
-            {/* Summary card */}
-            <View style={styles.section}>
-              <Text style={styles.sectionLabel}>投稿プレビュー</Text>
-              <View style={styles.summaryCard}>
-                {/* Category badge */}
-                <View style={[styles.summaryBadge, { backgroundColor: category.color }]}>
-                  <Ionicons
-                    name={getCategoryIconName(form.category) as keyof typeof Ionicons.glyphMap}
-                    size={14}
-                    color="#fff"
-                  />
-                  <Text style={styles.summaryBadgeText}>{category.label}</Text>
-                </View>
-
-                {/* Title preview */}
-                <Text style={styles.summaryTitle} numberOfLines={2}>
-                  {form.title || '(タイトル未入力)'}
-                </Text>
-
-                {/* Content preview */}
-                {form.content ? (
-                  <Text style={styles.summaryContent} numberOfLines={2}>
-                    {form.content}
-                  </Text>
-                ) : null}
-
-                {/* Image count */}
-                {form.images.length > 0 && (
-                  <View style={styles.summaryImageRow}>
-                    <Ionicons name="image-outline" size={14} color={Colors.textSecondary} />
-                    <Text style={styles.summaryMeta}>{form.images.length}枚の画像</Text>
-                  </View>
-                )}
-
-                {/* Location */}
-                <View style={styles.summaryLocationRow}>
-                  <Ionicons name="location-outline" size={14} color={Colors.textSecondary} />
-                  <Text style={styles.summaryMeta} numberOfLines={1}>{locationHint}</Text>
-                </View>
-
-                {/* Comments */}
-                <View style={styles.summaryLocationRow}>
-                  <Ionicons name="chatbubble-outline" size={14} color={Colors.textSecondary} />
-                  <Text style={styles.summaryMeta}>
-                    コメント: {form.allowComments ? '許可' : '不許可'}
-                  </Text>
-                </View>
-              </View>
-            </View>
-          </>
-        )}
+        {step === 3 && <CreateStepConfirm form={form} locationHint={locationHint} showManualLocation={showManualLocation} manualPlace={manualPlace} onToggleManualLocation={setShowManualLocation} onManualPlaceChange={setManualPlace} />}
 
         <View style={{ height: 100 }} />
       </ScrollView>
@@ -940,225 +592,6 @@ const styles = StyleSheet.create({
     paddingTop: 20,
   },
 
-  /* Sections */
-  section: {
-    gap: 10,
-    marginBottom: 8,
-  },
-  sectionGrouped: {
-    gap: 12,
-    backgroundColor: Colors.background,
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 8,
-  },
-  sectionRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: 4,
-    marginBottom: 8,
-  },
-  sectionLabel: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  required: {
-    color: Colors.danger,
-    fontWeight: '400',
-  },
-  divider: {
-    height: StyleSheet.hairlineWidth,
-    backgroundColor: Colors.border,
-    marginVertical: 16,
-  },
-  rowIcon: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-  },
-
-  /* Category grid: 2x2 */
-  categoryGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-  },
-  categoryBtn: {
-    width: '47%',
-    flexGrow: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 8,
-    borderRadius: 14,
-    paddingVertical: 16,
-  },
-  categoryBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  categoryBtnTextActive: { color: '#fff' },
-
-  /* Inputs */
-  input: {
-    borderRadius: 12,
-    backgroundColor: Colors.surfaceSecondary,
-    paddingHorizontal: 14,
-    paddingVertical: 13,
-    fontSize: 15,
-    color: Colors.textPrimary,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  textarea: { minHeight: 100, paddingTop: 13 },
-  inputLike: {
-    borderRadius: 12,
-    backgroundColor: Colors.surfaceSecondary,
-    paddingHorizontal: 14,
-    paddingVertical: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    borderWidth: 1,
-    borderColor: 'transparent',
-  },
-  inputLikeText: {
-    fontSize: 15,
-    color: Colors.textPrimary,
-  },
-  inputLikePlaceholder: {
-    color: Colors.textMuted,
-  },
-
-  /* Fields gap */
-  fieldsGap: {
-    gap: 10,
-  },
-
-  /* Chips */
-  wrapRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
-  chip: {
-    borderRadius: 20,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    backgroundColor: '#fff',
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  chipActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  chipText: { fontSize: 13, color: Colors.textSecondary, fontWeight: '600' },
-  chipTextActive: { color: '#fff', fontWeight: '700' },
-
-  /* Row helpers */
-  row: { flexDirection: 'row', gap: 10 },
-  rowBetween: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  halfBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    borderRadius: 12,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 12,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  halfBtnActive: {
-    backgroundColor: Colors.primary,
-    borderColor: Colors.primary,
-  },
-  halfBtnText: { fontSize: 14, color: Colors.textSecondary, fontWeight: '600' },
-  halfBtnTextActive: { color: '#fff' },
-
-  /* Location */
-  locationText: { fontSize: 13, color: Colors.textSecondary, lineHeight: 18 },
-
-  /* Manual location */
-  manualLocationToggle: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingVertical: 8,
-  },
-  manualLocationToggleText: {
-    fontSize: 14,
-    color: Colors.primary,
-    fontWeight: '600',
-  },
-  manualLocationFields: {
-    gap: 10,
-    marginTop: 4,
-  },
-  manualLocationDivider: {
-    textAlign: 'center',
-    fontSize: 13,
-    color: Colors.textMuted,
-    marginBottom: 4,
-  },
-  manualLocationClear: {
-    alignSelf: 'flex-start',
-    paddingVertical: 4,
-  },
-  manualLocationClearText: {
-    fontSize: 13,
-    color: Colors.danger,
-    fontWeight: '600',
-  },
-
-  /* Summary card */
-  summaryCard: {
-    backgroundColor: Colors.background,
-    borderRadius: 16,
-    padding: 16,
-    gap: 10,
-    borderWidth: 1,
-    borderColor: Colors.border,
-  },
-  summaryBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    gap: 4,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  summaryBadgeText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: '#fff',
-  },
-  summaryTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: Colors.textPrimary,
-  },
-  summaryContent: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    lineHeight: 18,
-  },
-  summaryImageRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  summaryLocationRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  summaryMeta: {
-    fontSize: 13,
-    color: Colors.textSecondary,
-    flex: 1,
-  },
-
   /* Bottom bar */
   bottomBar: {
     flexDirection: 'row',
@@ -1201,49 +634,6 @@ const styles = StyleSheet.create({
   },
   submitBtnBottom: {
     backgroundColor: Colors.primary,
-  },
-
-  /* Images */
-  imageAddBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 5,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 22,
-    backgroundColor: Colors.primary,
-  },
-  imageAddText: {
-    color: '#fff',
-    fontWeight: '700',
-    fontSize: 13,
-  },
-  imageRow: {
-    gap: 10,
-    paddingVertical: 4,
-  },
-  previewWrap: {
-    width: 100,
-    height: 100,
-    borderRadius: 12,
-    overflow: 'hidden',
-    backgroundColor: '#e5e7eb',
-    position: 'relative',
-  },
-  previewImage: {
-    width: '100%',
-    height: '100%',
-  },
-  previewRemove: {
-    position: 'absolute',
-    top: 6,
-    right: 6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    alignItems: 'center',
-    justifyContent: 'center',
   },
 
   /* Modal shared */
